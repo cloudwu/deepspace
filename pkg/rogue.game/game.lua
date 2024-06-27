@@ -74,7 +74,7 @@ end
 --camera.screen_to_world(x, y)
 
 local mouse_mb          = world:sub {"mouse"}
-local start_x, start_y, cur_x, cur_y
+local start_x, start_y, cur_x, cur_y, cancel_drag
 
 local function map_coord(x, y)
 	local p = camera.screen_to_world(x, y)
@@ -88,6 +88,20 @@ local function map_coord(x, y)
 end
 
 local lastx, lasty
+
+local drag_mode = {
+	mode = "add",
+	add = {
+		next = "del",
+		color = 0x000020,
+		action = floor.add,
+	},
+	del = {
+		next = "add",
+		color = 0x200000,
+		action = floor.del,
+	},
+}
 
 function game:data_changed()
 	for _, btn, state, x, y in mouse_mb:unpack() do
@@ -105,13 +119,26 @@ function game:data_changed()
 				end
 			else
 				-- state == "UP"
+				local drag = drag_mode[drag_mode.mode]
 				floor.drag_clear(world)
-				-- build
-				floor.add(world, start_x, cur_x, start_y, cur_y)
+				if not cancel_drag then
+					drag.action(world, start_x, cur_x, start_y, cur_y)
+				else
+					cancel_drag = false
+				end
 				start_x = nil
 				start_y = nil
 				cur_x = nil
 				cur_y = nil
+			end
+		elseif btn == "RIGHT" then
+			if state == "UP" then
+				if start_x then
+					-- drag
+					cancel_drag = not cancel_drag
+				else
+					drag_mode.mode = drag_mode[drag_mode.mode].next
+				end
 			end
 		end
 	end
@@ -122,12 +149,16 @@ function game:data_changed()
 		lastx, lasty = x, y
 	end
 	
+	local color = drag_mode[drag_mode.mode].color
+	
 	if start_x then
 		floor.drag_clear(world)
-		floor.drag(world, start_x, cur_x, start_y, cur_y)
+		if not cancel_drag then
+			floor.drag(world, start_x, cur_x, start_y, cur_y, color)
+		end
 		floor.focus_clear()
 	else
-		floor.focus(world, x, y)
+		floor.focus(world, x, y, color)
 	end
 	
 	monitor.flush(world)

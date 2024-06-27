@@ -41,7 +41,7 @@ local function trigger(world, x, y, visible)
 	end
 end
 
-local lastx, lasty, lastobj
+local lastobj
 local focus
 
 function M.focus_clear()
@@ -53,22 +53,21 @@ function M.focus_clear()
 	end
 end
 
-function M.focus(world, x, y)
+function M.focus(world, x, y, color)
 	if not focus then
-		focus = create_floor(world, x, y, true, 0x000040)
+		focus = create_floor(world, x, y, true)
+	end
+	if not x then
+		focus.material.hide = true
+		return
 	end
 	if focus.material.hide then
 		focus.material.hide = false
 	end
 	
-	if x ~= lastx or y ~= lasty then
-		focus.x = x
-		focus.y = y
-	else
-		return
-	end
+	focus.x = x
+	focus.y = y
 	
-	lastx, lasty = x, y
 	if lastobj then
 		lastobj.material.hide = false
 	end
@@ -79,12 +78,12 @@ function M.focus(world, x, y)
 	else
 		local idx = x << 32 | y
 		local obj = map[idx]
-		if obj then
+		if obj and obj.material.visible then
 			obj.material.hide = true
 			lastobj = obj
-			focus.material.emissive = 0x000040	-- blue, over
+			focus.material.emissive = color
 		else
-			focus.material.emissive = 0x004000	-- green, empty
+			focus.material.emissive = color * 4
 			lastobj = nil
 		end
 	end
@@ -129,29 +128,33 @@ function M.drag_clamp(start_x, end_x, start_y, end_y)
 	return start_x, end_x, start_y, end_y
 end
 
-function M.add(world, x1, x2, y1, y2)
+local function trigger_range(add, world, x1, x2, y1, y2)
 	x1, x2, y1, y2 = M.drag_clamp(x1, x2, y1, y2)
 	if x1 then
 		for x = x1, x2 do
 			for y = y1, y2 do
-				trigger(world, x, y, true)
+				trigger(world, x, y, add)
 			end
 		end
 	end
 end
 
---function M.del(world, x, y)
---	trigger(world, x, y, false)
---end
+function M.add(...)
+	trigger_range(true, ...)
+end
 
-function M.drag(world, start_x, end_x, start_y, end_y)
+function M.del(...)
+	trigger_range(false, ...)
+end
+
+function M.drag(world, start_x, end_x, start_y, end_y, color)
 	start_x, end_x, start_y, end_y = M.drag_clamp(start_x, end_x, start_y, end_y)
 	if not start_x then
 		return
 	end
 	local n = (end_x - start_x + 1) * (end_y - start_y + 1)
 	for i = #drag_tile + 1, n do
-		drag_tile[i] = create_floor(world, 0, 0, true, 0x404000)
+		drag_tile[i] = create_floor(world, 0, 0, true)
 	end
 	local idx = 1
 	for x = start_x, end_x do
@@ -159,8 +162,11 @@ function M.drag(world, start_x, end_x, start_y, end_y)
 			local t = drag_tile[idx]; idx = idx + 1
 			local obj_idx = x << 32 | y
 			local obj = map[obj_idx]
-			if obj then
+			if obj and obj.material.visible then
 				obj.material.hide = true
+				t.material.emissive = color
+			else
+				t.material.emissive = color * 4
 			end
 			t.x = x
 			t.y = y
