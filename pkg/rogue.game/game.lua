@@ -1,0 +1,134 @@
+local ecs = ...
+local world = ecs.world
+
+local util = import_package "rogue.util"
+local print_r = util.print_r
+local async_instance = util.async(world)
+
+local game	= ecs.system "game"
+
+local iani = ecs.require "ant.anim_ctrl|state_machine"
+local iloader = ecs.require "ant.anim_ctrl|loader"
+local bgfx = require "bgfx"
+local map = require "map"
+local floor = require "floor"
+local camera = ecs.require "camera_ctrl"
+local math3d = require "math3d"
+local monitor = require "monitor"
+
+--local core = require "game.core"
+--print(core.test())
+
+local function object2d(what, x, y, r)
+	local proxy = { x = x, y = y, r = r or 0 }
+	world:create_instance {
+		prefab = "/asset/wall/"..what .. ".glb/mesh.prefab",
+		visible = false,
+		on_ready = function (inst)
+			local eid_list = inst.tag["*"]
+			local eid = eid_list[1]
+			proxy.eid = eid
+			proxy.material = monitor.material(world, eid_list)
+			if what == "floor" then
+				proxy.material.emissive = 0x000040
+			end
+			monitor.new(proxy)
+		end,
+	}
+	return proxy
+end
+
+local function walls()
+	local walls = map.load(localpath "map.ant")
+	for _, wall in ipairs(walls) do
+		local face = wall.face
+		if wall.external then
+			if face % 90 == 0 then
+				object2d("external_i", wall[1], wall[2], face)
+			else
+				object2d("external_l", wall[1], wall[2], face - 45)
+			end
+		else
+			object2d(wall.type, wall[1], wall[2], face)
+		end
+	end
+end
+
+local function hero()
+	async_instance(function(async)
+--		local ani = async:create_instance { prefab = "/asset/avatar.ani.glb/animation.prefab" }
+		local inst = async:create_instance { prefab = "/asset/avatar.glb/mesh.prefab" }
+		local ani = inst.tag.animation[1]
+		iloader.load(ani, "/asset/avatar.ani.glb")
+		iani.play(ani, { name = "walk", loop = true })
+	end)
+end
+
+function game:init_world()
+	bgfx.maxfps(50)
+	world:create_instance {	prefab = "/asset/light.prefab" }
+	monitor.set_coord(floor.width/2-0.5, floor.height/2-0.5)
+--	walls()
+end
+
+--camera.screen_to_world(x, y)
+
+local mouse_mb          = world:sub {"mouse"}
+local start_x, start_y, cur_x, cur_y
+
+local function map_coord(x, y)
+	local p = camera.screen_to_world(x, y)
+	if p then
+		local pos = math3d.tovalue(p)
+		x, y = monitor.get_coord(pos[1], pos[3])
+		x = (x + 0.5) // 1 | 0
+		y = (y + 0.5) // 1 | 0
+		return x, y
+	end
+end
+
+local lastx, lasty
+
+function game:data_changed()
+	for _, btn, state, x, y in mouse_mb:unpack() do
+		if btn == "LEFT" then
+			x, y = map_coord(x, y)
+			if state == "DOWN" then
+				start_x = x or start_x
+				start_y = y or start_y
+				cur_x, cur_y = start_x, start_y
+			elseif state == "MOVE" then
+				cur_x = x or cur_x
+				cur_y = y or cur_y
+				if not start_x then
+					start_x, start_y = cur_x, cur_y
+				end
+			else
+				-- state == "UP"
+				floor.drag_clear(world)
+				-- build
+				floor.add(world, start_x, cur_x, start_y, cur_y)
+				start_x = nil
+				start_y = nil
+				cur_x = nil
+				cur_y = nil
+			end
+		end
+	end
+
+	local mouse = world:get_mouse()
+	local x, y = map_coord(mouse.x, mouse.y)
+	if x ~= lastx or y ~=lasty then
+		lastx, lasty = x, y
+	end
+	
+	if start_x then
+		floor.drag_clear(world)
+		floor.drag(world, start_x, cur_x, start_y, cur_y)
+		floor.focus_clear()
+	else
+		floor.focus(world, x, y)
+	end
+	
+	monitor.flush(world)
+end

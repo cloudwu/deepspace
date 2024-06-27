@@ -1,0 +1,7 @@
+component "entity2d"
+
+system "game"
+    .implement "game.lua"
+
+system "camera_ctrl"
+    .implement "camera_ctrl.lua"
