@@ -71,6 +71,9 @@ function game:init_world()
 --	walls()
 end
 
+local function gen_wall()
+end
+
 --camera.screen_to_world(x, y)
 
 local mouse_mb          = world:sub {"mouse"}
@@ -87,21 +90,27 @@ local function map_coord(x, y)
 	end
 end
 
-local lastx, lasty
-
 local drag_mode = {
 	mode = "add",
 	add = {
 		next = "del",
 		color = 0x000020,
-		action = floor.add,
+		action = function (world, x1, x2, y1, y2)
+			floor.add(world, x1, x2, y1, y2)
+			map.add(x1, x2, y1, y2)
+		end
 	},
 	del = {
 		next = "add",
 		color = 0x200000,
-		action = floor.del,
+		action = function (world, x1, x2, y1, y2)
+			floor.del(world, x1, x2, y1, y2)
+			map.del(x1, x2, y1, y2)
+		end
 	},
 }
+
+local lastx, lasty, moved
 
 function game:data_changed()
 	for _, btn, state, x, y in mouse_mb:unpack() do
@@ -132,13 +141,16 @@ function game:data_changed()
 				cur_y = nil
 			end
 		elseif btn == "RIGHT" then
-			if state == "UP" then
+			if state == "MOVE" then
+				moved = true
+			elseif state == "UP" then
 				if start_x then
 					-- drag
 					cancel_drag = not cancel_drag
-				else
+				elseif not moved then
 					drag_mode.mode = drag_mode[drag_mode.mode].next
 				end
+				moved = false
 			end
 		end
 	end
@@ -161,5 +173,6 @@ function game:data_changed()
 		floor.focus(world, x, y, color)
 	end
 	
+	map.flush(world)
 	monitor.flush(world)
 end
