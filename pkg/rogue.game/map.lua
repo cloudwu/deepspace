@@ -49,9 +49,11 @@ end
 
 local function slot_range(set, x1, x2, y1, y2)
 	x1, x2, y1, y2 = floor.drag_clamp(x1, x2, y1, y2)
-	for x = x1, x2 do
-		for y = y1, y2 do
-			slot(x, y, set)
+	if x1 then
+		for x = x1, x2 do
+			for y = y1, y2 do
+				slot(x, y, set)
+			end
 		end
 	end
 end
@@ -111,7 +113,9 @@ local function new_wall(world, t, x, y, r)
 end
 
 function map.flush(world)
-	local n = 1
+	if not next(wall) then
+		return
+	end
 	for idx, w in pairs(wall) do
 		local x = idx >> 24
 		local y = idx & 0xffffff
@@ -142,6 +146,86 @@ function map.flush(world)
 			end
 		end
 		wall[idx] = nil
+	end
+	return true
+end
+
+function map.save(filename)
+	local minx = floor.width
+	local maxx = 0
+	local miny = floor.height
+	local maxy = 0
+	for idx, w in pairs(data) do
+		if (w & 1) ~= 0 then
+			local x = idx >> 24
+			local y = idx & 0xffffff
+			if x < minx then
+				minx = x
+			end
+			if x > maxx then
+				maxx = x
+			end
+			if y < miny then
+				miny = y
+			end
+			if y > maxy then
+				maxy = y
+			end
+		end
+	end
+	local m = {}
+	local width = maxx - minx + 1
+	local height = maxy - miny + 1
+	local s = height * width
+	for i = 1, s do
+		m[i] = "."
+	end
+	for idx, w in pairs(data) do
+		if (w & 1) ~= 0 then
+			local x = (idx >> 24) - minx
+			local y = (idx & 0xffffff) - miny
+			local idx = width * y + x + 1
+			m[idx] = "X"
+		end
+	end
+	local f = assert(io.open(filename, "w"))
+	local from = 1
+	for i = 1, height do
+		local line = table.concat(m, "", from, from + width - 1)
+		from = from + width
+		f:write(line, "\n")
+	end
+	f:close()
+end
+
+local serialize = import_package "ant.serialize"
+local lfs       = require "bee.filesystem"
+
+function map.load(world, filename)
+	if lfs.exists(filename) then
+		local m = serialize.load_lfs "save.ant"
+		local height = #m
+		if height == 0 then
+			return
+		end
+		local width = #m[1]
+		log.info(("Load from %s %dx%d"):format(filename , width, height))
+		local startx = (floor.width - width) // 2
+		local starty = (floor.height - height) // 2
+		for line, v in ipairs(m) do
+			local from = 1
+			while true do
+				from = v:find("X", from, true)
+				if not from then
+					break
+				end
+				local x = from + startx
+				local y = line + starty
+				slot(x, y, true)
+				floor.add(world, x,x, y,y)
+				from = from + 1
+			end
+		end
 	end
 end
 

@@ -15,6 +15,7 @@ local floor = require "floor"
 local camera = ecs.require "camera_ctrl"
 local math3d = require "math3d"
 local monitor = require "monitor"
+local savefile = "save.ant"
 
 --local core = require "game.core"
 --print(core.test())
@@ -38,22 +39,6 @@ local function object2d(what, x, y, r)
 	return proxy
 end
 
-local function walls()
-	local walls = map.load(localpath "map.ant")
-	for _, wall in ipairs(walls) do
-		local face = wall.face
-		if wall.external then
-			if face % 90 == 0 then
-				object2d("external_i", wall[1], wall[2], face)
-			else
-				object2d("external_l", wall[1], wall[2], face - 45)
-			end
-		else
-			object2d(wall.type, wall[1], wall[2], face)
-		end
-	end
-end
-
 local function hero()
 	async_instance(function(async)
 --		local ani = async:create_instance { prefab = "/asset/avatar.ani.glb/animation.prefab" }
@@ -66,6 +51,7 @@ end
 
 function game:init_world()
 	bgfx.maxfps(50)
+	map.load(world, savefile)
 	world:create_instance {	prefab = "/asset/light.prefab" }
 	monitor.set_coord(floor.width/2-0.5, floor.height/2-0.5)
 --	walls()
@@ -173,6 +159,8 @@ function game:data_changed()
 		floor.focus(world, x, y, color)
 	end
 	
-	map.flush(world)
+	if map.flush(world) then
+		map.save(savefile)
+	end
 	monitor.flush(world)
 end
