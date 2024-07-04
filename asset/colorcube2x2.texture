@@ -10,4 +10,3 @@ sampler:
   U: CLAMP
   V: CLAMP
   W: CLAMP
-type: texture

@@ -39,6 +39,7 @@ local function object2d(what, x, y, r)
 	return proxy
 end
 
+--[[
 local function hero()
 	async_instance(function(async)
 --		local ani = async:create_instance { prefab = "/asset/avatar.ani.glb/animation.prefab" }
@@ -48,19 +49,38 @@ local function hero()
 		iani.play(ani, { name = "walk", loop = true })
 	end)
 end
+]]
+
+local avatar = { x = floor.width/2, y = floor.height/2, r = 0 }
+
+local function init_avatar()
+	world:create_entity {
+		policy = {
+			"ant.render|render",
+		},
+		data = {
+			scene 		= {	s = 1 },
+--			visible_masks = "main_view|cast_shadow",
+			material	= "/asset/avatar.material",
+			visible	    = true,
+            render_layer = "translucent",
+			mesh		= "quad.primitive",
+			on_ready = function (e)
+				world.w:extend(e, "eid:in")
+				avatar.eid = e.eid
+				monitor.new(avatar)
+			end
+		}
+	}
+end
 
 function game:init_world()
 	bgfx.maxfps(50)
 	map.load(world, savefile)
 	world:create_instance {	prefab = "/asset/light.prefab" }
 	monitor.set_coord(floor.width/2-0.5, floor.height/2-0.5)
---	walls()
+	init_avatar()
 end
-
-local function gen_wall()
-end
-
---camera.screen_to_world(x, y)
 
 local mouse_mb          = world:sub {"mouse"}
 local start_x, start_y, cur_x, cur_y, cancel_drag
@@ -162,5 +182,6 @@ function game:data_changed()
 	if map.flush(world) then
 		map.save(savefile)
 	end
+	avatar.r = camera.yaw
 	monitor.flush(world)
 end
