@@ -60,10 +60,13 @@ local function init_avatar()
 		},
 		data = {
 			scene 		= {	s = 1 },
---			visible_masks = "main_view|cast_shadow",
+			visible_masks = "main_view|cast_shadow",
 			material	= "/asset/avatar.material",
 			visible	    = true,
             render_layer = "translucent",
+			feature_set = {
+				SHADOW_ALPHA_MASK = true,
+			},
 			mesh		= "quad.primitive",
 			on_ready = function (e)
 				world.w:extend(e, "eid:in")

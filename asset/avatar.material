@@ -2,7 +2,7 @@ fx:
   shader_type: PBR
   setting:
     lighting: on
-    cast_shadow: off
+    cast_shadow: on
     receive_shadow: off
   varyings:
     a_position: vec3
@@ -20,7 +20,7 @@ properties:
   u_basecolor_factor: {0.8, 0.8, 0.8, 1.0}
 state:
   ALPHA_REF: 0
-  CULL: CCW
+  CULL: NONE
   DEPTH_TEST: GREATER
   MSAA: true
   WRITE_MASK: RGBAZ
