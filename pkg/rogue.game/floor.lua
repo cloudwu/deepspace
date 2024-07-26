@@ -1,8 +1,9 @@
 local monitor = require "monitor"
+local scene = require "scene"
 
 local M = {
-	width = 128,
-	height = 128,
+	width = scene.x,
+	height = scene.y,
 }
 
 local floor_prefab = "/asset/wall/floor.glb/mesh.prefab"
@@ -44,6 +45,7 @@ end
 local lastobj
 local focus
 
+-- todo : remove .hide
 function M.focus_clear()
 	if not focus then
 		return
@@ -134,6 +136,7 @@ local function trigger_range(add, world, x1, x2, y1, y2)
 		for x = x1, x2 do
 			for y = y1, y2 do
 				trigger(world, x, y, add)
+				scene.set_floor(x, y, add)
 			end
 		end
 	end
@@ -173,6 +176,18 @@ function M.drag(world, start_x, end_x, start_y, end_y, color)
 			t.material.hide = false
 		end
 	end
+end
+
+function M.exist(x,y)
+	if x < 0 or x >= M.width or y < 0 or y >=M.height then
+		return false
+	end
+	local idx = x << 32 | y
+	local obj = map[idx]
+	if not obj then
+		return false
+	end
+	return obj.material.visible
 end
 
 return M

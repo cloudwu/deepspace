@@ -1,0 +1,7 @@
+version : 1
+scene:
+  x : 32
+  y : 32
+fps : 50
+speed: 3
+  
