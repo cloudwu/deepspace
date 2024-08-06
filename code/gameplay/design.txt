@@ -1,0 +1,40 @@
+工人和建筑都是 Actor
+
+Actor 是一个自治体:
+1. actor 用 actor.new { name = "类型", 其它参数 } 创建。
+	name 是必须项，目前有 building 和 worker
+2. 每个 actor 有一个 id ，可以通过 self.id 获得。actor.new 也会返回。
+3. 每个 tick 都会调用所有 actor:update() 。当 update 返回 true 时，actor 销毁自己。
+4. 通过 actor.message(id, msg_name, ...) 可以向 id 发送消息。目前支持 msg_name = "flush" 消息 。
+5. 通过 actor.publish(msg_name, ...) 向所有 actor 发送消息。
+
+actor_xxx.lua 定义了不同 actor 的实现。例如，actor_worker.lua 定义了 worker 的实现。
+
+todo: Actor 的持久化
+
+building 指场景中的建筑，它有 blueprint supply build 三个阶段：
+
+新创建 building 是 blueprint 阶段，之后，actor update 会根据初始化参数发布新的 self.scene.project_new 之后转向 supply 阶段。
+在 supply 阶段，会检查 prject 列表中每个 p:done() 。只有所有 project 均完成，才会转向下个阶段 build 。
+当前 build 阶段会销毁建筑，todo: 做更多建筑的功能。
+
+worker 是用来完成 building 任务的工人
+
+worker update 如果发现自身没有任务，则
+	1. 通过 self.scene.project_list() 获取当前场景上的 project 列表。
+	2. 从中选出一个任务设为当前 project 。
+	3. 通过 project:add_worker(self.id) 将自己注册到 project ，获得一个可执行的 task 。
+	4. 执行当前 task 。
+	5. 如果 task 无法执行 (cancel) ，通知 project:cancel(self.id, err) 。
+	
+task 是由一个函数列表定义而成
+	temp = task.define() 用来定义函数列表的模板。
+	inst = temp:instance { 初始化参数 } 创建 task 实例，实例带有独立的环境。
+	inst:update() 会依次执行函数列表上的函数，返回值：
+		true 继续
+		nil, err cancel
+		false 完成
+	inst:reset() 可以回到内部设置的上一个 checkpoint 重新执行。
+	
+不同的 task 定义在 task_xxx.lua 中，例如 task_supply.lua 定义了 supply 的函数列表。
+	

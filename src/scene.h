@@ -16,7 +16,7 @@ struct scene_coord {
 };
 
 void scene_build(struct scene *S, int layer, int n, struct scene_coord p[]);
-void scene_pathmap(struct scene *S, int layer, struct scene_coord pos, int target_layer);
+void scene_pathmap(struct scene *S, int layer, int n, struct scene_coord pos[], int target_layer);
 int scene_path(struct scene *S, int layer, struct scene_coord target, int n, struct scene_coord p[]);
 
 #endif

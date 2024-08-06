@@ -1,0 +1,6 @@
+building :
+  dummy :
+    id : 1
+    material :
+      wood : 100
+      iron : 30

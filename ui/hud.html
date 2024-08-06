@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <style path = "/ui/styles.css"/>
+        <script type="text/x-lua" >
+            local model = window.createModel {}
+			local mode
+			local function reset()
+				if mode then
+					local e = document.getElementById(mode)
+					e.style["background-color"] = "black"
+				end
+			end
+			function model.click(ev)
+				reset()
+				mode = ev.current.id
+				ev.current.style["background-color"] = "red"
+				window.sendMessage("mode", mode)
+			end
+			window.onMessage("cancel", function()
+				reset()
+			end)
+        </script>
+    </head>
+    <body>
+        <action_panel>
+            <button id = "build" data-event-click="click(ev)">地</button>
+            <button id = "remove" data-event-click="click(ev)">拆</button>
+            <button id = "worker" data-event-click="click(ev)">人</button>
+            <button id = "box" data-event-click="click(ev)">箱</button>
+            <button id = "blueprint" data-event-click="click(ev)">建</button>
+        </action_panel>
+    </body>
+</html>

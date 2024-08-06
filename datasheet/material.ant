@@ -1,0 +1,6 @@
+material :
+  iron :
+    id : 1
+  wood :
+    id : 2
+    

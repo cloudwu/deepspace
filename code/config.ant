@@ -1,0 +1,11 @@
+fps : 50
+font : 微软雅黑
+sprite_base : 256
+pathmap : 8
+scene:
+  x : 32
+  y : 32
+speed: 3
+  
+  
+  

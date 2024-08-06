@@ -19,6 +19,20 @@ getfield(lua_State *L, int idx, const char *key) {
 	return luaL_error(L, "Need integer for .%s, It's %s", key, lua_typename(L, t));
 }
 
+static int
+getindex(lua_State *L, int idx, int i) {
+	int t = lua_geti(L, idx, i);
+	if (t == LUA_TNIL) {
+		return luaL_error(L, "No [%d] for %d", i, idx);
+	} else if (lua_isinteger(L, -1)) {
+		int	r = lua_tointeger(L, -1);
+		lua_pop(L, 1);
+		return r;
+	}
+	return luaL_error(L, "Need integer for [%d], It's %s", i, lua_typename(L, t));
+}
+
+
 static size_t
 count_size(int layer, int x, int y) {
 	size_t meta = sizeof(struct scene) + (layer - 1) * sizeof(slot_t *);
@@ -53,8 +67,9 @@ get_xy(lua_State *L, struct scene *s,  int index, int *ox, int *oy, int *on) {
 	int x = luaL_checkinteger(L, index + 1);
 	int y = luaL_checkinteger(L, index + 2);
 	int n = luaL_checkinteger(L, index + 3);
-	if (x < 0 || x >= (1 << s->shift_x) || y < 0 || y >= s->y)
-		luaL_error(L, "Invalid (%d x %x) in (%d x %d)", x, y, 1 << s->shift_x, s->y);
+	if (x < 0 || x >= (1 << s->shift_x) || y < 0 || y >= s->y) {
+		return NULL;
+	}
 	if (n < 0 || n >= s->layer_n)
 		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
 	*ox = x;
@@ -73,6 +88,8 @@ lscene_get(lua_State *L) {
 	struct scene *s = get_scene(L);
 	int x, y, layer;
 	slot_t * grid = get_xy(L, s, 1, &x, &y, &layer);
+	if (grid == NULL)
+		return 0;
 	lua_pushinteger(L, grid[ (y << s->shift_x) + x]);
 	return 1;
 }
@@ -83,6 +100,9 @@ lscene_set(lua_State *L) {
 	int x, y, layer;
 	int v = luaL_checkinteger(L, 2);
 	slot_t * grid = get_xy(L, s, 2, &x, &y, &layer);
+	if (grid == NULL) {
+		luaL_error(L, "Invalid (%d x %d) in (%d x %d)", x, y, 1 << s->shift_x, s->y);
+	}
 	int index = (y << s->shift_x) + x;
 	lua_pushinteger(L, grid[ index ]);
 	grid[ index ] = (slot_t)v;
@@ -95,10 +115,18 @@ lscene_pathmap(lua_State *L) {
 	luaL_checktype(L, 2, LUA_TTABLE);
 	int layer = getfield(L, 2, "block");
 	int target = getfield(L, 2, "target");
-	struct scene_coord pos;
-	pos.x = getfield(L, 2, "x");
-	pos.y = getfield(L, 2, "y");
-	scene_pathmap(s, layer, pos, target);
+	int n = lua_rawlen(L, 2) / 2;
+	struct scene_coord temp[2048];
+	struct scene_coord *pos = temp;
+	if (n > sizeof(temp)/sizeof(temp[0])) {
+		pos = (struct scene_coord *)lua_newuserdatauv(L, n * sizeof(temp[0]), 0);
+	}
+	int i;
+	for (i=0;i<n;i++) {
+		pos[i].x = getindex(L, 2, i*2+1);
+		pos[i].y = getindex(L, 2, i*2+2);
+	}
+	scene_pathmap(s, layer, n, pos, target);
 	return 0;
 }
 
@@ -121,10 +149,10 @@ lscene_path(lua_State *L) {
 				break;
 		}
 		int n = i;
-		for (i=0;i<=n;i++) {
-			lua_pushinteger(L, output[n-i].x);
+		for (i=0;i<n;i++) {
+			lua_pushinteger(L, output[i].x);
 			lua_rawseti(L, 2, i*2+1);
-			lua_pushinteger(L, output[n-i].y);
+			lua_pushinteger(L, output[i].y);
 			lua_rawseti(L, 2, i*2+2);
 		}
 	}

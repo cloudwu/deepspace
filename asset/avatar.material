@@ -4,6 +4,7 @@ fx:
     lighting: on
     cast_shadow: on
     receive_shadow: off
+    shadow_alpha_mask: on
   varyings:
     a_position: vec3
     a_normal: vec3

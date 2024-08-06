@@ -25,7 +25,7 @@ get_coord(struct pathmap_context *C, slot_t *layer, struct scene_coord p) {
 }
 
 static void
-pathmap_init(struct pathmap_context *C, struct scene *S, int layer, int target_layer, struct scene_coord pos) {
+pathmap_init(struct pathmap_context *C, struct scene *S, int layer, int target_layer) {
 	C->x = 1 << S->shift_x;
 	C->y = S->y;
 	C->shift = S->shift_x;
@@ -33,9 +33,7 @@ pathmap_init(struct pathmap_context *C, struct scene *S, int layer, int target_l
 	check_layer(S, target_layer);
 	C->block = S->layer[layer];
 	C->target = S->layer[target_layer];
-	slot_t * s = get_coord(C, C->block, pos);
-	assert(s != NULL);
-	C->id = *s;
+	C->id = 0;
 }
 
 static const int neighbor[8*3] = {
@@ -83,11 +81,20 @@ render(struct pathmap_context *C, struct scene_coord pos, int dist) {
 }
 
 void
-scene_pathmap(struct scene *S, int layer, struct scene_coord pos, int target_layer) {
+scene_pathmap(struct scene *S, int layer, int n, struct scene_coord pos[], int target_layer) {
 	struct pathmap_context C;
-	pathmap_init(&C, S, layer, target_layer, pos);
+	pathmap_init(&C, S, layer, target_layer);
 	memset(C.target, 0, C.x * C.y * sizeof(slot_t));
-	render(&C, pos, 1);
+	if (n == 0)
+		return;
+	slot_t * s = get_coord(&C, C.block, pos[0]);
+	if (s == NULL)
+		return;
+	C.id = *s;
+	int i;
+	for (i=0;i<n;i++) {
+		render(&C, pos[i], 1);
+	}
 }
 
 static inline slot_t *
