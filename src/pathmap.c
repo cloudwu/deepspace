@@ -87,13 +87,13 @@ scene_pathmap(struct scene *S, int layer, int n, struct scene_coord pos[], int t
 	memset(C.target, 0, C.x * C.y * sizeof(slot_t));
 	if (n == 0)
 		return;
-	slot_t * s = get_coord(&C, C.block, pos[0]);
-	if (s == NULL)
-		return;
-	C.id = *s;
 	int i;
 	for (i=0;i<n;i++) {
-		render(&C, pos[i], 1);
+		slot_t * s = get_coord(&C, C.block, pos[i]);
+		if (s) {
+			C.id = *s;
+			render(&C, pos[i], 1);
+		}
 	}
 }
 
