@@ -1,4 +1,10 @@
-工人和建筑都是 Actor
+游戏分为 hud gameplay visual 三部分。
+
+hud 负责交互
+gameplay 负责数据逻辑
+visual 负责显示
+
+在 gameplay 中，工人和建筑都是 Actor 
 
 Actor 是一个自治体:
 1. actor 用 actor.new { name = "类型", 其它参数 } 创建。
@@ -12,22 +18,15 @@ actor_xxx.lua 定义了不同 actor 的实现。例如，actor_worker.lua 定义
 
 todo: Actor 的持久化
 
-building 指场景中的建筑，它有 blueprint supply build 三个阶段：
-
-新创建 building 是 blueprint 阶段，之后，actor update 会根据初始化参数发布新的 self.scene.project_new 之后转向 supply 阶段。
-在 supply 阶段，会检查 prject 列表中每个 p:done() 。只有所有 project 均完成，才会转向下个阶段 build 。
-当前 build 阶段会销毁建筑，todo: 做更多建筑的功能。
+building 指场景中的建筑，在创建时，它会创建 blueprint ，并通过 schedule 发布供应任务。当材料供应结束，删掉 blueprint 。
 
 worker 是用来完成 building 任务的工人
 
-worker update 如果发现自身没有任务，则
-	1. 通过 self.scene.project_list() 获取当前场景上的 project 列表。
-	2. 从中选出一个任务设为当前 project 。
-	3. 通过 project:add_worker(self.id) 将自己注册到 project ，获得一个可执行的 task 。
-	4. 执行当前 task 。
-	5. 如果 task 无法执行 (cancel) ，通知 project:cancel(self.id, err) 。
+worker update 在 idle 状态时会在 schedule 的所有任务中找一个离自己最近的，并把距离作为优先级向 schedule 请求任务。
+schedule 在每个 tick 会对每个任务选出优先级最高的工人，将任务分配给他。
+worker 被指定任务后，会切换到任务指定状态，开始执行 task 。
 	
-task 是由一个函数列表定义而成
+task 是由一个函数列表定义而成，每个函数是一个阶段。
 	temp = task.define() 用来定义函数列表的模板。
 	inst = temp:instance { 初始化参数 } 创建 task 实例，实例带有独立的环境。
 	inst:update() 会依次执行函数列表上的函数，返回值：
@@ -36,5 +35,9 @@ task 是由一个函数列表定义而成
 		false 完成
 	inst:reset() 可以回到内部设置的上一个 checkpoint 重新执行。
 	
+	task 可以设置 checkpoint ，当外部环境变化时，通过 reset 回到 checkpoint 阶段重新执行。目前地图的变化会 reset 所有工人的 task 。
+	
 不同的 task 定义在 task_xxx.lua 中，例如 task_supply.lua 定义了 supply 的函数列表。
+
+
 	
