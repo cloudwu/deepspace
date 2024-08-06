@@ -7,7 +7,7 @@ return function (env)
 		}
 		local dist = self.context.scene.storage_path(path)
 		if dist == 0 then
-			return self.cancel, "NO_PATH_TO_MATERIAL"
+			return self.cancel, "NO_PATH"
 		end
 		self.path = path
 		self.step = 0
@@ -18,14 +18,15 @@ return function (env)
 	end
 	local function move(self)
 		local obj = self.worker.object
+		local worker = self.worker
+		local x = self.to_x
+		local y = self.to_y
 		local step = self.step
 		if step == 0 then
-			local x = self.to_x
-			local y = self.to_y
 			obj.x = x
 			obj.y = y
-			self.worker.x = x
-			self.worker.y = y
+			worker.x = (x + 0.5) // 1 | 0
+			worker.y = (y + 0.5) // 1 | 0
 			local path = self.path
 			local n = #path
 			if n == 0 then
@@ -58,8 +59,8 @@ return function (env)
 		local y = obj.y + self.dy
 		obj.x = x
 		obj.y = y
-		self.worker.x = ( x + 0.5 ) // 1 | 0
-		self.worker.y = ( y + 0.5 ) // 1 | 0
+		worker.x = ( x + 0.5 ) // 1 | 0
+		worker.y = ( y + 0.5 ) // 1 | 0
 		return self.yield
 	end
 	env.take_material = move
@@ -69,10 +70,9 @@ return function (env)
 		path.x = self.worker.x
 		path.y = self.worker.y
 		local dist = self.context.scene.path(path, self.task.x, self.task.y)
-		print_r(self.task.x, self.task.y, dist, path)
 		if dist == 0 then
 			-- todo: drop material
-			return self.cancel, "NO_PATH_TO_DESTINATION"
+			return self.cancel, "NO_PATH"
 		end
 		self.step = 0
 		local obj = self.worker.object

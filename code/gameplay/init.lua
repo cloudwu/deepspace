@@ -75,11 +75,13 @@ local command = {}
 local instance
 
 function command:add_floor(x1, x2, y1, y2)
-	self.floor.add(x1, x2, y1, y2)	
+	self.floor.add(x1, x2, y1, y2)
+	self.actor.publish "map_change"
 end
 
 function command:remove_floor(x1, x2, y1, y2)
 	self.floor.remove(x1, x2, y1, y2)	
+	self.actor.publish "map_change"
 end
 
 function command:add_worker(x, y)

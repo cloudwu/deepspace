@@ -53,9 +53,17 @@ return function (inst)
 			schedule.cancel(self.task_id, self.id)
 		elseif not cont then
 			schedule.complete(self.task_id, self.id)
-			self.task_id = nil
-			self.task = nil
-			self.status = "idle"
+		else
+			return
+		end
+		self.task_id = nil
+		self.task = nil
+		self.status = "idle"
+	end
+
+	function worker:map_change()
+		if self.status == "supply" then
+			self.task:reset()
 		end
 	end
 	

@@ -63,6 +63,17 @@ return function (scene)
 		storage_dirty = true
 	end
 	
+--	local function debug_map(layer)
+--		local temp = {}
+--		for y = 0, scene.y -1 do
+--			for x = 0, scene.x - 1 do
+--				local v = data:get(x, y, layer)
+--				temp[x+1] = v
+--			end
+--			print(table.concat(temp, " "))
+--		end
+--	end
+
 	local function build_storage_pathmap()
 		local t = {
 			block = layer.region,
@@ -77,11 +88,18 @@ return function (scene)
 		end
 		data:pathmap(t)
 	end
+
+	local pathmap_cache = {} -- index -> pos
+
+	local function rebuild()
+		build_region()
+		build_storage_pathmap()
+		pathmap_cache = {}
+	end
 	
 	local function gen_storage_pathmap()
 		if map_dirty then
-			build_region()
-			build_storage_pathmap()
+			rebuild()
 		elseif storage_dirty then
 			build_storage_pathmap()
 		end
@@ -99,23 +117,21 @@ return function (scene)
 		return data:get(x, y, layer.pathmap_storage)
 	end
 	
-	local pathmap_cache = {} -- index -> pos
 	local temp = { block = layer.region }
 	
 	local function gen_pathmap(x, y)
 		if map_dirty then
-			build_region()
-			pathmap_cache = {}
+			rebuild()
 		end
 		local pos = x << 16 | y
 		local index = pos % pathmap_n
 		local ret = index + name_layer_n
-		if pathmap_cache[pos] ~= index then
+		if pathmap_cache[index] ~= pos then
 			temp.target = ret
 			temp[1] = x
 			temp[2] = y
 			data:pathmap(temp)
-			pathmap_cache[pos] = index
+			pathmap_cache[index] = pos
 		end
 		return ret
 	end
