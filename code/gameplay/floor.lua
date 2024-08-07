@@ -64,9 +64,40 @@ return function(scene)
 				message[n] = { what = "floor", action = build and "build" or "remove",
 					x = index >> 16, y = index & 0xffff }
 			end
+			message[n+1] = { what = "floor", action = "change" }
 			change = {}
 		end
 	end
 	
+	local save_key <const> = "floor"
+
+	function floor.export(file)
+		local info = {
+			x = scene.x,
+			y = scene.y,
+			data = scene.export_floor(),
+		}
+		file:write_object(save_key, info)
+	end
+
+	function floor.import(savedata)
+		local obj = assert(savedata[save_key])
+		assert(obj.x == scene.x and obj.y == scene.y)
+		local n = 1
+		local data = obj.data
+		local unpack = string.unpack
+		local set_floor = scene.set_floor
+		for y = 0, obj.y - 1 do
+			for x = 0, obj.x - 1 do
+				local enable = unpack("<I4", data, n)
+				if set_floor(x, y, enable ~= 0) then
+					local index = x << 16 | y
+					change[index] = true
+				end
+				n = n + 4
+			end
+		end
+	end
+
 	return floor
 end

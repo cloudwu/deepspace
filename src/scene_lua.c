@@ -83,6 +83,75 @@ get_scene(lua_State *L) {
 	return (struct scene *)luaL_checkudata(L, 1, "SCENE");
 }
 
+union endian_t {
+	slot_t i;
+	char i8[sizeof(slot_t)];
+};
+
+static inline int
+little_endian() {
+	union endian_t u;
+	u.i = 1;
+	return u.i8[0] == 1;
+}
+
+static inline size_t
+convert_endian(slot_t s) {
+	union endian_t u;
+	u.i = s;
+	union endian_t r;
+	int i;
+	for (i=0;i<sizeof(slot_t);i++) {
+		r.i8[i] = u.i8[sizeof(slot_t) - i - 1];
+	}
+	return r.i;
+}
+
+static int
+lscene_export(lua_State *L) {
+	struct scene *s = get_scene(L);
+	int n = luaL_checkinteger(L, 2);
+	if (n < 0 || n >= s->layer_n)
+		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
+	size_t sz = (1 << s->shift_x) * s->y;
+	const slot_t *ptr = s->layer[n];
+	if (little_endian()) {
+		lua_pushlstring(L, (const char *)ptr, sz * sizeof(slot_t));
+	} else {
+		slot_t *s = lua_newuserdatauv(L, sz * sizeof(slot_t), 0);
+		int i;
+		for (i=0;i<sz;i++) {
+			s[i] = convert_endian(ptr[i]);
+		}
+		lua_pushlstring(L, (const char *)s, sz * sizeof(slot_t));
+	}
+	return 1;
+}
+
+static int
+lscene_import(lua_State *L) {
+	struct scene *s = get_scene(L);
+	int n = luaL_checkinteger(L, 2);
+	if (n < 0 || n >= s->layer_n)
+		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
+	size_t sz;
+	const char * data = luaL_checklstring(L, 3, &sz);
+	if (sz != (1 << s->shift_x) * s->y * sizeof(slot_t))
+		return luaL_error(L, "Invalid data size %d", (int)sz);
+	slot_t *ptr = s->layer[n];
+	if (little_endian()) {
+		memcpy(ptr, data, sz);
+	} else {
+		int i;
+		const slot_t *src = (const slot_t *)data;
+		sz /= sizeof(slot_t);
+		for (i=0;i<sz;i++) {
+			ptr[i] = convert_endian(src[i]);
+		}
+	}
+	return 0;
+}
+
 static int
 lscene_get(lua_State *L) {
 	struct scene *s = get_scene(L);
@@ -231,6 +300,8 @@ lscene_new(lua_State *L) {
 	if (luaL_newmetatable(L, "SCENE")) {
 		luaL_Reg l[] = {
 			{ "info", lscene_info },
+			{ "import", lscene_import },
+			{ "export", lscene_export },
 			{ "get", lscene_get },
 			{ "set", lscene_set },
 			{ "pathmap", lscene_pathmap },

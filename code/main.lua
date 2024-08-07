@@ -14,6 +14,12 @@ function game.keyboard(key)
 	if key == "F8" then
 		show_debug = not show_debug
 		ant.show_debug(show_debug)
+	elseif key == "F5" then
+		print("Saving")
+		gameplay.action "save"
+	elseif key == "F6" then
+		print("Loading")
+		gameplay.action "load"
 	end
 end
 
@@ -29,7 +35,12 @@ gameplay.action "new_game"
 local action = {}
 
 function action.floor(msg)
-	vfloor[msg.action](msg.x, msg.y)
+	local action = msg.action
+	if action == "change" then
+		gameplay.action("publish", "map_change")
+	else
+		vfloor[action](msg.x, msg.y)
+	end
 end
 
 function action.worker(msg)

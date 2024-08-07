@@ -6,6 +6,9 @@ local actor = require "gameplay.actor"
 local blueprint = require "gameplay.blueprint"
 local datasheet = require "gameplay.datasheet"
 local schedule = require "gameplay.schedule"
+local loadsave = require "gameplay.loadsave"
+
+local savefile <const> = "savetest.ant"
 
 local gameplay = {}
 
@@ -76,12 +79,10 @@ local instance
 
 function command:add_floor(x1, x2, y1, y2)
 	self.floor.add(x1, x2, y1, y2)
-	self.actor.publish "map_change"
 end
 
 function command:remove_floor(x1, x2, y1, y2)
 	self.floor.remove(x1, x2, y1, y2)	
-	self.actor.publish "map_change"
 end
 
 function command:add_worker(x, y)
@@ -107,9 +108,27 @@ function command:add_blueprint(x, y)
 	}
 end
 
+function command:save()
+	local f <close> = loadsave.savefile(savefile)
+	self.floor.export(f)
+end
+
+function command:load()
+	local data = loadsave.load(savefile)
+	if data then
+		self.floor.import(data)
+	else
+		print("No file : ", savefile)
+	end
+end
+
 function command.new_game()
 	instance = new_game()
 	instance.game_start()
+end
+
+function command:publish(msg)
+	instance.actor.publish(msg)
 end
 
 function gameplay.action(what, ... )

@@ -144,4 +144,8 @@ return function (scene)
 	function scene.dist(x1, y1, x2, y2)
 		return data:get(x2, y2, gen_pathmap(x1,y1))
 	end
+
+	function scene.export_floor()
+		return data:export(layer.floor)
+	end
 end
