@@ -13,6 +13,13 @@ function box.new(arg)
 	all[ant.primitive("cube", obj)] = true
 end
 
+function box.clear()
+	for obj in pairs(all) do
+		ant.remove(obj)
+	end
+	all = {}
+end
+
 function box.update()
 	for obj in pairs(all) do
 		obj.r = obj.r + 1

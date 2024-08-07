@@ -108,18 +108,17 @@ function command:add_blueprint(x, y)
 	}
 end
 
+local function is_prefix(s, prefix)
+	local n = #prefix
+	return s:sub(1, n) == prefix
+end
+
 function command:save()
-	local f <close> = loadsave.savefile(savefile)
-	self.floor.export(f)
+	self.request_save = true
 end
 
 function command:load()
-	local data = loadsave.load(savefile)
-	if data then
-		self.floor.import(data)
-	else
-		print("No file : ", savefile)
-	end
+	self.request_load = true
 end
 
 function command.new_game()
@@ -135,8 +134,74 @@ function gameplay.action(what, ... )
 	command[what](instance, ...)
 end
 
+local savelist <const> = {
+	"floor",
+	"box",
+	"schedule",
+	"worker",
+	"blueprint",
+}
+
+local function call_savelist(func, ...)
+	for _, what in ipairs(savelist) do
+		func(what, ...)
+	end
+end
+
+local clear_message = {}
+
+local function gen_clear_message(what)
+	clear_message[#clear_message+1] = { what = what, action = "clear" }
+end
+
+call_savelist(gen_clear_message)
+
+local function clear_(what, self)
+	self[what].clear()
+end
+
+local function import_(what, self, data)
+	local f = self[what].import
+	if f then
+		f(data)
+	end
+end
+
+local function update_(what, self, messages)
+	local f = self[what].update
+	if f then
+		f(messages)
+	end
+end
+
 function gameplay.update()
-	return instance.update()
+	local r = instance.update()
+	if instance.request_save then
+		instance.request_save = false
+		local f <close> = loadsave.savefile(savefile)
+		for _, what in ipairs(savelist) do
+			local export_func = instance[what].export
+			if export_func then
+				export_func(f)
+			end
+		end
+		instance.actor.export(f)
+	end
+	if instance.request_load then
+		instance.request_load = false
+		local data = loadsave.load(savefile)
+		if data then
+			call_savelist(clear_, instance)
+			call_savelist(import_, instance, data)
+			local reset_message = table.move(clear_message, 1, #clear_message, 1, {})
+			instance.actor.import(data)
+			call_savelist(update_, instance, reset_message)
+			return reset_message
+		else
+			print("No file : ", savefile)
+		end
+	end
+	return r
 end
 
 return gameplay

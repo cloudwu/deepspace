@@ -1,6 +1,7 @@
 local serialize = import_package "ant.serialize"
 local datalist = require "datalist"
-local lfs       = require "bee.filesystem"
+local lfs  = require "bee.filesystem"
+local util = require "util"
 
 local loadsave = {}
 
@@ -10,7 +11,8 @@ function save:open(filename)
 	if self._file then
 		self._file:close()
 	end
-	local f , err = io.open(filename, "wb")
+	self._filename = filename
+	local f , err = io.open(filename .. ".tmp", "wb")
 	if not f then
 		return nil, err
 	end
@@ -22,20 +24,44 @@ function save:close()
 	if self._file then
 		self._file:close()
 		self._file = nil
+		local filename = self._filename
+		if lfs.exists(filename) then
+			lfs.rename(filename, filename .. ".bak")
+			lfs.rename(filename .. ".tmp", filename)
+			lfs.remove(filename .. ".bak")
+		else
+			lfs.rename(filename .. ".tmp", filename)
+		end
 	end
 end
 
 save.__close = save.close
 
-function save:write_object(key, object)
-	self._file:write(key, " :\n")
-	for k,v in pairs(object) do
+local function write_kv(f, t, ident)
+	local keys = util.keys(t)
+	table.sort(keys)
+	for i = 1, #keys do	
+		local k = keys[i]
+		local v = t[k]
 		if type(v) == "string" then
 			v = datalist.quote(v)
 		else
 			v = tostring(v)
 		end
-		self._file:write("  ", k, " : ", v, "\n")
+		f:write(ident, k, " : ", v, "\n")
+	end
+end
+
+function save:write_object(key, object)
+	self._file:write(key, " :\n")
+	write_kv(self._file, object, "  ")
+end
+
+function save:write_list(key, list)
+	self._file:write(key, " :\n")
+	for _, item in ipairs(list) do
+		self._file:write("  ---\n")
+		write_kv(self._file, item, "  ")
 	end
 end
 

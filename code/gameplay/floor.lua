@@ -72,26 +72,42 @@ return function(scene)
 	local save_key <const> = "floor"
 
 	function floor.export(file)
+		local data, x, y, w, h = scene.export_floor()
+		if not data then
+			return
+		end
 		local info = {
-			x = scene.x,
-			y = scene.y,
-			data = scene.export_floor(),
+			x = x,
+			y = y,
+			w = w,
+			h = h,
+			data = data,
 		}
 		file:write_object(save_key, info)
 	end
+	
+	function floor.clear()
+		scene.clear_floor()
+	end
 
 	function floor.import(savedata)
-		local obj = assert(savedata[save_key])
-		assert(obj.x == scene.x and obj.y == scene.y)
+		local obj = savedata[save_key]
+		if not obj then
+			return
+		end
 		local n = 1
 		local data = obj.data
+		local dx = obj.x
+		local dy = obj.y
 		local unpack = string.unpack
 		local set_floor = scene.set_floor
-		for y = 0, obj.y - 1 do
-			for x = 0, obj.x - 1 do
+		for y = 0, obj.h - 1 do
+			for x = 0, obj.w - 1 do
 				local enable = unpack("<I4", data, n)
-				if set_floor(x, y, enable ~= 0) then
-					local index = x << 16 | y
+				local xx = x + dx
+				local yy = y + dy
+				if set_floor(xx, yy, enable ~= 0) then
+					local index = xx << 16 | yy
 					change[index] = true
 				end
 				n = n + 4

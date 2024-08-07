@@ -66,7 +66,7 @@ return function (env)
 	env.take_material = move
 	function env:check_destination()
 		self:checkpoint()
-		local path = self.path
+		local path = self.path or {}
 		path.x = self.worker.x
 		path.y = self.worker.y
 		local dist = self.context.scene.path(path, self.task.x, self.task.y)

@@ -15,6 +15,7 @@ function util.keys(t)
 	for k in pairs(t) do
 		r[n] = k; n = n + 1
 	end
+	return r
 end
 
 function util.map_from_list(t, func)

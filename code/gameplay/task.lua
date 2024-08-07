@@ -47,8 +47,10 @@ function task_instance_meta:checkpoint()
 	self._checkpoint = self._current
 end
 
-function task_instance_meta:reset()
-	self._current = self._checkpoint or 1
+function task_instance_meta:reset(cp)
+	local c = self._checkpoint or cp or 1
+	self._current = c
+	return c
 end
 
 function task_meta:instance(init)

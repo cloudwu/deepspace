@@ -67,8 +67,7 @@ return function (inst)
 		end
 	end
 	
-	function worker:assign_task(task_id)
-		assert(self.status == "wait_task")
+	local function assign_task(self, task_id, cp)
 		local task = schedule.list()[task_id]
 		local task_type = task.type
 		self.status = task_type
@@ -78,6 +77,12 @@ return function (inst)
 			worker = self,
 			task = task,
 		}
+		self.task:reset(cp)
+	end
+	
+	function worker:assign_task(task_id)
+		assert(self.status == "wait_task")
+		assign_task(self, task_id)
 	end
 	
 	function worker:reject_task(task_id)
@@ -92,8 +97,34 @@ return function (inst)
 	function worker:init()
 		if self.status == nil then
 			self.status = "idle"
-			self.object = inst.worker.add(self.id, self.x, self.y)			
+			self.object = inst.worker.add(self.id, self.x, self.y)
+		else
+			local x = self.x
+			local y = self.y
+			local wx = (x + 0.5) // 1 | 0
+			local wy = (y + 0.5) // 1 | 0
+			self.x = wx
+			self.y = wy
+			self.object = inst.worker.add(self.id, wx, wy, x, y)
+			if self.task_id then
+				assign_task(self, self.task_id, self.task)
+			end
 		end
+	end
+	
+	function worker:export(list)
+		local obj = {
+			name = self.name,
+			id = self.id,
+			x = self.object.x,
+			y = self.object.y,
+			status = self.status,
+			task_id = self.task_id,
+		}
+		if self.task then
+			obj.task = self.task:reset()
+		end
+		list[#list+1] = obj
 	end
 	
 	return worker

@@ -1,4 +1,5 @@
 local util = require "util"
+local allocid = require "gameplay.allocid"
 
 return function (inst)
 	local actor = {}
@@ -13,21 +14,14 @@ return function (inst)
 		return meta
 	end)
 
-	local actor_id; do	-- function
-		local id = 0
-		function actor_id()
-			id = id + 1
-			return id
-		end
-	end
-
+	local alloc_id = allocid()
 	local actors = {}
 
 	local new_set = {}
 	local delete_set = {}
 
 	function actor.new(init)
-		local id = actor_id() 
+		local id = alloc_id(init.id)
 		init.id = id
 		local meta = assert(actor_init[init.name])
 		local obj = setmetatable(init, meta)
@@ -80,6 +74,25 @@ return function (inst)
 	function actor.message(id, ...)
 		local obj = actors[id] or new_set[id] or ("No actor " .. id)
 		send_message(obj, ...)
+	end
+	
+	function actor.export(file)
+		local list = {}
+		actor.publish("export", list)
+		if next(list) then
+			file:write_list("actor", list)
+		end
+	end
+	
+	function actor.import(savedata)
+		alloc_id = allocid()
+		actors = {}
+		if savedata.actor then
+			for _, init in ipairs(savedata.actor) do
+				actor.new(init)
+			end
+			new_set, actors = actors, new_set
+		end
 	end
 
 	return actor

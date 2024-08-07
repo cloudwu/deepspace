@@ -4,9 +4,9 @@ return function (scene)
 	local all = {}
 
 	local add_queue = {}
-	function worker.add(worker_id, x, y)
+	function worker.add(worker_id, x, y, wx, wy)
 		if scene.valid(x, y) then
-			local obj = { x = x, y = y }
+			local obj = { x = wx or x, y = wy or y }
 			all[worker_id] = obj
 			add_queue[#add_queue+1] = { what = "worker", action = "new", object = obj }
 			return obj
@@ -26,6 +26,10 @@ return function (scene)
 			message[n] = v
 			add_queue[k] = nil
 		end
+	end
+	
+	function worker.clear()
+		all = {}
 	end
 	
 	return worker

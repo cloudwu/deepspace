@@ -24,16 +24,17 @@ return function (inst)
 		if not_complete then
 			return
 		end
-		blueprint.del(self.blueprint)
+		blueprint.del(self.id)
 		return true
 	end
 	
 	function building:init()
+		local x = assert(self.x)
+		local y = assert(self.y)
+		
 		if self.status == nil then
 			self.status = "blueprint"
 			-- publish project
-			local x = assert(self.x)
-			local y = assert(self.y)
 			
 			if not scene.valid(x, y) then
 				self.status = "invalid"
@@ -42,7 +43,7 @@ return function (inst)
 
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
-			self.blueprint = blueprint.add(building_id, x, y)
+			blueprint.add(building_id, self.id, x, y)
 			
 			local project = {}
 			self.project = project
@@ -54,10 +55,38 @@ return function (inst)
 					y = y,
 					material = mat.id,
 					count = mat.count,
+					owner = self.id,
 				}
 				project[p] = true
 			end
+		else
+			-- load
+			assert(self.status == "blueprint")
+			local building_id = assert(self.building)
+			local building_data = assert(datasheet.building[building_id])
+			blueprint.add(building_id, self.id, x, y)
+			
+			local project = {}
+			self.project = project
+			local live_projects = schedule.list()
+			for id, p in pairs(live_projects) do
+				if p.owner == self.id then
+					project[id] = true
+				end
+			end
 		end
+	end
+	
+	function building:export(list)
+		local obj = {
+			name = self.name,
+			id = self.id,
+			x = self.x,
+			y = self.y,
+			building = self.building,
+			status = self.status,
+		}
+		list[#list+1] = obj
 	end
 	
 	return building

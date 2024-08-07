@@ -134,4 +134,12 @@ function floor.focus(x, y, mode)
 	focus_obj.material.color = 	focus_color[mode] or 0x808020
 end
 
+function floor.clear()
+	for index, obj in pairs(objs) do
+		obj.material.visible = false
+		table.insert(cache, obj)
+		objs[index] = nil
+	end
+end
+
 return floor

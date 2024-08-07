@@ -107,25 +107,91 @@ convert_endian(slot_t s) {
 	return r.i;
 }
 
+struct rect {
+	int left;
+	int right;
+	int top;
+	int bottom;
+};
+
+static void
+bounding_rect(const slot_t *s, int w, int h, struct rect *output) {
+	int i,j;
+	
+	output->left = w;
+	output->right = 0;
+	output->top = -1;
+	output->bottom = 0;
+	
+	for (i=0;i<h;i++) {
+		int left = w, right = 0;
+		for (j=0;j<w;j++) {
+			if (*s != 0) {
+				if (left == w) {
+					left = j;
+				}
+				right = j;
+			}
+			++s;
+		}
+		if (left < output->left)
+			output->left = left;
+		else if (left == w) {
+			// empty line
+			if (output->bottom == 0)
+				output->top = i;
+		} else {
+			output->bottom = i;
+		}
+		if (right > output->right)
+			output->right = right;
+	}
+}
+
 static int
 lscene_export(lua_State *L) {
 	struct scene *s = get_scene(L);
 	int n = luaL_checkinteger(L, 2);
 	if (n < 0 || n >= s->layer_n)
 		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
-	size_t sz = (1 << s->shift_x) * s->y;
 	const slot_t *ptr = s->layer[n];
-	if (little_endian()) {
-		lua_pushlstring(L, (const char *)ptr, sz * sizeof(slot_t));
-	} else {
-		slot_t *s = lua_newuserdatauv(L, sz * sizeof(slot_t), 0);
-		int i;
-		for (i=0;i<sz;i++) {
-			s[i] = convert_endian(ptr[i]);
-		}
-		lua_pushlstring(L, (const char *)s, sz * sizeof(slot_t));
+	struct rect r;
+	bounding_rect(ptr, 1 << s->shift_x, s->y, &r);
+	if (r.bottom == 0) {
+		// empty
+		return 0;
 	}
-	return 1;
+//	printf("top = %d bottom = %d left = %d right = %d\n", r.top, r.bottom, r.left, r.right);
+	int w = r.right - r.left + 1;
+	int h = r.bottom - r.top + 1;
+	slot_t *buffer = lua_newuserdatauv(L, w * h * sizeof(slot_t), 0);
+	slot_t *tmp = buffer;
+	int i,j;
+	ptr += r.top << s->shift_x;
+	if (little_endian()) {
+		for (i=0;i<h;i++) {
+			for (j=0;j<w;j++) {
+				*tmp = ptr[r.left + j];
+				++tmp;
+			}
+			ptr += 1 << s->shift_x;
+		}
+	} else {
+		for (i=0;i<h;i++) {
+			for (j=0;j<w;j++) {
+				*tmp = convert_endian(ptr[r.left + j]);
+				++tmp;
+			}
+			ptr += 1 << s->shift_x;
+		}
+	}
+	lua_pushlstring(L, (const char *)buffer, w * h * sizeof(slot_t));
+	lua_pushinteger(L, r.left);
+	lua_pushinteger(L, r.top);
+	lua_pushinteger(L, w);
+	lua_pushinteger(L, h);
+	
+	return 5;
 }
 
 static int
@@ -133,22 +199,55 @@ lscene_import(lua_State *L) {
 	struct scene *s = get_scene(L);
 	int n = luaL_checkinteger(L, 2);
 	if (n < 0 || n >= s->layer_n)
-		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
+		return luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
+	int x = luaL_checkinteger(L, 3);
+	int y = luaL_checkinteger(L, 4);
+	int w = luaL_checkinteger(L, 5);
+	int h = luaL_checkinteger(L, 6);
+	if (x + w > (1 << s->shift_x)) {
+		return luaL_error(L, "Invalid width (%d + %d > %d)", x, w, (1 << s->shift_x));
+	}
+	if (y + h > s->y) {
+		return luaL_error(L, "Invalid height (%d + %d > %d)", y, h, s->y);
+	}
 	size_t sz;
 	const char * data = luaL_checklstring(L, 3, &sz);
-	if (sz != (1 << s->shift_x) * s->y * sizeof(slot_t))
-		return luaL_error(L, "Invalid data size %d", (int)sz);
+	if (sz != w * h) {
+		return luaL_error(L, "Invalid size (%d * %d != %d)", w, h, (int)sz);
+	}
 	slot_t *ptr = s->layer[n];
+	const slot_t *src = (const slot_t *)data;
+	memset(ptr, 0, s->y << s->shift_x);
+	int i,j;
+	ptr += y << s->shift_x;
 	if (little_endian()) {
-		memcpy(ptr, data, sz);
+		for (i=0;i<h;i++) {
+			for (j=0;j<w;j++) {
+				ptr[x + j] = *src;
+				++src;
+			}
+			ptr += 1 << s->shift_x;
+		}
 	} else {
-		int i;
-		const slot_t *src = (const slot_t *)data;
-		sz /= sizeof(slot_t);
-		for (i=0;i<sz;i++) {
-			ptr[i] = convert_endian(src[i]);
+		for (i=0;i<h;i++) {
+			for (j=0;j<w;j++) {
+				ptr[x + j] = convert_endian(*src);
+				++src;
+			}
+			ptr += 1 << s->shift_x;
 		}
 	}
+	return 0;
+}
+
+static int
+lscene_clear(lua_State *L) {
+	struct scene *s = get_scene(L);
+	int n = luaL_checkinteger(L, 2);
+	if (n < 0 || n >= s->layer_n)
+		luaL_error(L, "Invalid layer %d/%d", n, s->layer_n);
+	slot_t *ptr = s->layer[n];
+	memset(ptr, 0, (1 << s->shift_x) * s->y * sizeof(slot_t));
 	return 0;
 }
 
@@ -302,6 +401,7 @@ lscene_new(lua_State *L) {
 			{ "info", lscene_info },
 			{ "import", lscene_import },
 			{ "export", lscene_export },
+			{ "clear", lscene_clear },
 			{ "get", lscene_get },
 			{ "set", lscene_set },
 			{ "pathmap", lscene_pathmap },

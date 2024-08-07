@@ -148,4 +148,8 @@ return function (scene)
 	function scene.export_floor()
 		return data:export(layer.floor)
 	end
+	
+	function scene.clear_floor()
+		data:clear(layer.floor)
+	end
 end

@@ -14,4 +14,12 @@ function worker.update()
 	end
 end
 
+function worker.clear()
+	for obj in pairs(workers) do
+		ant.remove(obj)
+	end
+	workers = {}
+end
+
+
 return worker

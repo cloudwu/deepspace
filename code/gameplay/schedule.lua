@@ -1,18 +1,15 @@
+local allocid = require "gameplay.allocid"
+
 return function (scene)
 	local schedule = {}
-
-	local alloc_id; do
-		local id = 0
-		function alloc_id()
-			id = id + 1
-			return id
-		end
-	end
+	
+	local alloc_id = allocid()
 
 	local project = {}
 
 	function schedule.new(args)
-		local id = alloc_id()
+		local id = alloc_id(args.id)
+		args.id = id
 		project[id] = args
 		return id
 	end
@@ -77,6 +74,34 @@ return function (scene)
 		end
 		assign_table = {}
 		return r		
+	end
+	
+	function schedule.export(file)
+		if next(project) then
+			local list = {}
+			local n = 1
+			for id, p in pairs(project) do
+				list[n] = p
+				n = n + 1
+			end
+			file:write_list("project", list)
+		end
+	end
+	
+	function schedule.clear()
+		project = {}
+		assign_table = {}
+		cancel_table = {}
+		alloc_id = allocid()
+	end
+	
+	function schedule.import(savedata)
+		local obj = savedata.project
+		if obj then
+			for _, p in ipairs(obj) do
+				schedule.new(p)
+			end
+		end
 	end
 
 	return schedule
