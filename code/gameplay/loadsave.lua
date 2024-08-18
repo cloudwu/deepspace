@@ -48,20 +48,20 @@ local function write_kv(f, t, ident)
 		else
 			v = tostring(v)
 		end
-		f:write(ident, k, " : ", v, "\n")
+		f:write(ident, k, ":", v, "\n")
 	end
 end
 
 function save:write_object(key, object)
-	self._file:write(key, " :\n")
-	write_kv(self._file, object, "  ")
+	self._file:write(key, ":\n")
+	write_kv(self._file, object, "\t")
 end
 
 function save:write_list(key, list)
-	self._file:write(key, " :\n")
+	self._file:write(key, ":\n")
 	for _, item in ipairs(list) do
-		self._file:write("  ---\n")
-		write_kv(self._file, item, "  ")
+		self._file:write("\t---\n")
+		write_kv(self._file, item, "\t")
 	end
 end
 

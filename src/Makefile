@@ -6,7 +6,7 @@ LUALIB=`pkgconf lua --libs`
 
 all : $(GAME) $(TEST)
 
-$(GAME) : scene_lua.c pathmap.c build.c
+$(GAME) : scene_lua.c pathmap.c build.c container.c powergrid.c array.c list.c
 	gcc -Wall -g --shared -o $@ $^ $(LUAINC) $(LUALIB)
 	
 
@@ -14,4 +14,4 @@ $(TEST) : $(GAME)
 	cp $< $@
 	
 clean :
-	rm -f $(GAME) $(TEST)
+	rm -f $(GAME) $(TEST) test.exe
