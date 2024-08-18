@@ -6,7 +6,7 @@ LUALIB=`pkgconf lua --libs`
 
 all : $(GAME) $(TEST)
 
-$(GAME) : scene_lua.c pathmap.c build.c container.c powergrid.c array.c list.c
+$(GAME) : scene_lua.c pathmap.c build.c container_g.c powergrid.c array.c list.c group.c handle.c
 	gcc -Wall -g --shared -o $@ $^ $(LUAINC) $(LUALIB)
 	
 

@@ -27,6 +27,7 @@ init_slots(struct list *T, size_t stride) {
 
 static void
 init_list(lua_State *L, int index, int uv, struct list * T, int n, size_t stride) {
+	index = lua_absindex(L, index);
 	struct list tmp;
 	tmp.s = lua_newuserdatauv(L, stride * n, 0);
 	tmp.cap = n;
@@ -44,7 +45,6 @@ init_list(lua_State *L, int index, int uv, struct list * T, int n, size_t stride
 		T->freelist = T->cap;
 		T->cap = n;
 	}
-	
 	lua_setiuservalue(L, index, uv);
 }
 
