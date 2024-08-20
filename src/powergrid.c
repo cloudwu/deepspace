@@ -4,10 +4,8 @@
 
 #include "lgame.h"
 #include "group.h"
-
-struct capacitance {
-	uint32_t level;
-};
+#include "powergrid.h"
+#include "gamecapi.h"
 
 struct battery {
 	uint64_t level;
@@ -17,6 +15,7 @@ struct battery {
 };
 
 struct powergrid {
+	struct game_capi capi;
 	struct group generator;
 	struct group appliance;
 	struct group battery;
@@ -184,7 +183,7 @@ export_capacitance(lua_State *L, struct group *g, int type, int from_index) {
 }
 
 static int
-lexport(lua_State *L) {
+lpowergrid_export(lua_State *L) {
 	struct powergrid *P = getP(L);
 	lua_newtable(L);
 	int from_index = 1;
@@ -207,8 +206,16 @@ lexport(lua_State *L) {
 	return 1;	
 }
 
+static void *
+import_handle(lua_State *L, struct group *g, int h) {
+	void * r = group_import(L, 1, g, h);
+	if (r == NULL)
+		luaL_error(L, "Can't import powergrid id = %d", handle_id(h));
+	return r;
+}
+
 static int
-limport(lua_State *L) {
+lpowergrid_import(lua_State *L) {
 	struct powergrid *P = getP(L);
 	luaL_checktype(L, 2, LUA_TTABLE);
 	group_clear(&P->generator);
@@ -217,20 +224,19 @@ limport(lua_State *L) {
 	int index = 0;
 	while(lua_geti(L, 2, ++index) == LUA_TTABLE) {
 		int id = get_key(L, -1, "id");
-		int h = handle_id(id);
 		struct capacitance *c;
 		struct battery *b;
 		switch (handle_type(id)) {
 		case GENERATOR_INDEX:
-			c = (struct capacitance *)group_import(L, 1, &P->generator, h);
+			c = (struct capacitance *)import_handle(L, &P->generator, id);
 			c->level = get_key(L, -1, "level");
 			break;
 		case APPLIANCE_INDEX:
-			c = (struct capacitance *)group_import(L, 1, &P->appliance, h);
+			c = (struct capacitance *)import_handle(L, &P->appliance, id);
 			c->level = get_key(L, -1, "level");
 			break;
 		case BATTERY_INDEX:
-			b = (struct battery *)group_import(L, 1, &P->battery, h);
+			b = (struct battery *)import_handle(L, &P->battery, id);
 			b->level = get_key(L, -1, "level");
 			b->cap = get_key(L, -1, "cap");
 			b->power = get_key(L, -1, "cap");
@@ -412,7 +418,7 @@ comsume(struct power_context *ctx, struct group *g) {
 //#include <stdio.h>
 
 static int
-ltick(lua_State *L) {
+lpowergrid_tick(lua_State *L) {
 	struct powergrid *P = getP(L);
 	struct power_context ctx;
 	ctx.total_output = capacitance_stat(&P->generator);
@@ -433,22 +439,42 @@ ltick(lua_State *L) {
 	return 0;	
 }
 
+static struct capacitance *
+powergrid_get_level_(struct powergrid *P, int id) {
+	struct group *g = NULL;
+	switch (handle_type(id)) {
+	case GENERATOR_INDEX:
+		g = &P->generator;
+		break;
+	case APPLIANCE_INDEX:
+		g = &P->appliance;
+		break;
+	default:
+		return NULL;
+	}
+	return group_object(g, handle_id(id));
+}
+
 static int
 lpowergrid_new(lua_State *L) {
 	struct powergrid *P = (struct powergrid *)lua_newuserdatauv(L, sizeof(struct powergrid), GROUP_COUNT);
+	static struct powergrid_api capi = {
+		powergrid_get_level_,
+	};
+	P->capi.api_table = &capi;
 	group_init(L, -1, GENERATOR_INDEX, &P->generator, sizeof(struct capacitance));
 	group_init(L, -1, APPLIANCE_INDEX, &P->appliance, sizeof(struct capacitance));
 	group_init(L, -1, BATTERY_INDEX, &P->battery, sizeof(struct battery));
-	if (luaL_newmetatable(L, "GAME_POWERGRID")) {
+	if (luaL_newmetatable(L, POWERGRID_LUAKEY)) {
 		luaL_Reg l[] = {
 			{ "generator_add", lgenerator_add },
 			{ "appliance_add", lappliance_add },
 			{ "battery_add", lbattery_add },
 			{ "remove", lremove },
 			{ "set_level", lset_level },	// for debug
-			{ "tick", ltick },
-			{ "export", lexport },
-			{ "import", limport },
+			{ "tick", lpowergrid_tick },
+			{ "export", lpowergrid_export },
+			{ "import", lpowergrid_import },
 			{ "__index", NULL },
 			{ NULL, NULL },
 		};

@@ -7,6 +7,7 @@
 #include "lgame.h"
 #include "group.h"
 #include "list.h"
+#include "container.h"
 
 #define DEFAULT_STORAGE 128
 
@@ -27,6 +28,7 @@ struct box {
 };
 
 struct container {
+	struct game_capi capi;
 	struct group G;
 	struct list T;
 };
@@ -47,7 +49,7 @@ add_box(lua_State *L, struct container *C) {
 }
 
 static int
-container_add(lua_State *L) {
+lcontainer_add(lua_State *L) {
 	struct container * C = getC(L);
 	struct box * b = add_box(L, C);
 	if (lua_isboolean(L, 2)) {
@@ -65,7 +67,7 @@ container_add(lua_State *L) {
 }
 
 static int
-container_remove(lua_State *L) {
+lcontainer_remove(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -105,7 +107,7 @@ export_box(lua_State *L, struct container *C, struct box *b) {
 }
 
 static int
-container_export(lua_State *L) {
+lcontainer_export(lua_State *L) {
 	struct container * C = getC(L);
 	lua_newtable(L);
 	struct box * iter = NULL;
@@ -166,7 +168,7 @@ init_pile(lua_State *L, int index, struct container *C, struct box *b, const cha
 }
 
 static int
-container_import(lua_State *L) {
+lcontainer_import(lua_State *L) {
 	struct container * C = getC(L);
 	list_reset(storage_pile, &C->T);
 	group_clear(&C->G);
@@ -176,7 +178,7 @@ container_import(lua_State *L) {
 		int id = import_key(L, "id");
 		struct box *b = group_import(L, 1, &C->G, id);
 		if (b == NULL) {
-			return luaL_error(L, "Can't import id = %d", id);
+			return luaL_error(L, "Can't import box id = %d", id);
 		}
 		b->storage = LIST_EMPTY;
 		b->size = import_key_opt(L, "size", 0);
@@ -205,7 +207,7 @@ container_import(lua_State *L) {
 }
 
 static int
-container_content(lua_State *L) {
+lcontainer_content(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -235,7 +237,7 @@ find_pile(struct container * C, struct box *c, int type) {
 }
 
 static int
-container_stock(lua_State *L) {
+lcontainer_stock(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -252,7 +254,7 @@ container_stock(lua_State *L) {
 }
 
 static int
-container_put(lua_State *L) {
+lcontainer_put(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -341,7 +343,7 @@ reserve_inout(lua_State *L, int index, struct container * C, struct box *c, int 
 }
 
 static int
-container_reserve(lua_State *L) {
+lcontainer_reserve(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -358,7 +360,7 @@ container_reserve(lua_State *L) {
 }
 
 static int
-container_setcap(lua_State *L) {
+lcontainer_setcap(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -378,7 +380,7 @@ container_setcap(lua_State *L) {
 }
 
 static int
-container_setstack(lua_State *L) {
+lcontainer_setstack(lua_State *L) {
 	struct container * C = getC(L);
 	luaL_checktype(L, 2, LUA_TTABLE);
 	struct box *b = NULL;
@@ -399,7 +401,7 @@ container_setstack(lua_State *L) {
 }
 
 static int
-container_book(lua_State *L) {
+lcontainer_book(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -422,7 +424,7 @@ container_book(lua_State *L) {
 }
 
 static int
-container_take(lua_State *L) {
+lcontainer_take(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
@@ -463,7 +465,7 @@ check_type(struct container * C, struct box *c, int type) {
 }
 
 static int
-container_find(lua_State *L) {
+lcontainer_find(lua_State *L) {
 	struct container * C = getC(L);
 	int type = luaL_checkinteger(L, 2);
 	if (!lua_istable(L, 3)) {
@@ -494,25 +496,117 @@ container_find(lua_State *L) {
 }
 
 static int
+lcontainer_info(lua_State *L) {
+	struct container * C = getC(L);
+	int id = luaL_checkinteger(L, 2);
+	struct box *c = group_object(&C->G, id);
+	if (c == NULL)
+		return luaL_error(L, "No id %d", id);
+	lua_newtable(L);
+	if (c->size > 0) {
+		lua_pushinteger(L, c->size);
+		lua_setfield(L, -2, "size");
+	} else {
+		lua_pushboolean(L, 1);
+		if (c->size == 0) {
+			lua_setfield(L, -2, "output");
+		} else {
+			lua_setfield(L, -2, "input");
+		}
+	}
+	int iter = c->storage;
+	int index = 0;
+	struct storage_pile *pile;
+	while ((pile = list_each(storage_pile, &C->T, &iter))) {
+		lua_newtable(L);
+		lua_pushinteger(L, pile->type);
+		lua_setfield(L, -2, "type");
+		lua_pushinteger(L, pile->cap);
+		lua_setfield(L, -2, "cap");
+		lua_pushinteger(L, pile->stack);
+		lua_setfield(L, -2, "stack");
+		lua_pushinteger(L, pile->stock);
+		lua_setfield(L, -2, "stock");
+		lua_pushinteger(L, pile->book);
+		lua_setfield(L, -2, "book");
+		lua_pushinteger(L, pile->reserve);
+		lua_setfield(L, -2, "reserve");
+		lua_rawseti(L, -2, ++index);
+	}
+	return 1;
+}
+
+static struct storage_pile *
+get_pile(struct container *C, int id, int type) {
+	struct box *c = group_object(&C->G, id);
+	if (c == NULL)
+		return NULL;
+	if (c->size > 0)
+		return NULL;
+	int iter = c->storage;
+	struct storage_pile *pile;
+	while ((pile = list_each(storage_pile, &C->T, &iter))) {
+		if (pile->type == type)
+			return pile;
+	}
+	return NULL;
+}
+
+static int
+container_put_(struct container *C, int id, int type, int count, int dryrun) {
+	struct storage_pile *p = get_pile(C, id, type);
+	int space = p->cap - p->stock - p->reserve;
+	if (space <= 0)
+		return 0;
+	if (space < count)
+		count = space;
+	if (!dryrun) {
+		p->stock += count;
+	}
+	return count;
+}
+
+static int
+container_take_(struct container *C, int id, int type, int count, int dryrun) {
+	struct storage_pile *p = get_pile(C, id, type);
+	int stock = p->stock - p->book;
+	if (stock <= 0)
+		return 0;
+	if (stock < count) {
+		count = stock;
+	}
+	if (!dryrun) {
+		p->stock -= count;
+	}
+	return count;
+}
+
+static int
 lcontainer_new(lua_State *L) {
 	struct container *C = (struct container *)lua_newuserdatauv(L, sizeof(*C), 2);
+	static struct container_api capi = {
+		container_put_,
+		container_take_,
+	};
+	C->capi.api_table = &capi;
 	group_init(L, -1, 1, &C->G, sizeof(struct box));
 	list_init(storage_pile, &C->T, 2);
-	if (luaL_newmetatable(L, "GAME_CONTAINER")) {
+	if (luaL_newmetatable(L, CONTAINER_LUAKEY)) {
 		luaL_Reg l[] = {
-			{ "add", container_add },
-			{ "remove", container_remove },
-			{ "content", container_content },
-			{ "setstack", container_setstack },
-			{ "setcap", container_setcap },
-			{ "stock", container_stock },
-			{ "put", container_put },
-			{ "reserve", container_reserve },
-			{ "book", container_book },
-			{ "take", container_take },
-			{ "export", container_export },
-			{ "import", container_import },
-			{ "find", container_find },
+			{ "add", lcontainer_add },
+			{ "remove", lcontainer_remove },
+			{ "content", lcontainer_content },
+			{ "setstack", lcontainer_setstack },
+			{ "setcap", lcontainer_setcap },
+			{ "stock", lcontainer_stock },
+			{ "put", lcontainer_put },
+			{ "reserve", lcontainer_reserve },
+			{ "book", lcontainer_book },
+			{ "take", lcontainer_take },
+			{ "export", lcontainer_export },
+			{ "import", lcontainer_import },
+			{ "find", lcontainer_find },
+			{ "info", lcontainer_info },	// for debug
 			{ "__index", NULL },
 			{ NULL, NULL },
 		};
