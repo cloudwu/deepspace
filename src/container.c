@@ -7,8 +7,8 @@
 #include "lgame.h"
 #include "group.h"
 #include "list.h"
-#include "container.h"
 
+#define CONTAINER_LUAKEY "GAME_CONTAINER"
 #define DEFAULT_STORAGE 128
 
 struct storage_pile {
@@ -28,7 +28,6 @@ struct box {
 };
 
 struct container {
-	struct game_capi capi;
 	struct group G;
 	struct list T;
 };
@@ -536,59 +535,9 @@ lcontainer_info(lua_State *L) {
 	return 1;
 }
 
-static struct storage_pile *
-get_pile(struct container *C, int id, int type) {
-	struct box *c = group_object(&C->G, id);
-	if (c == NULL)
-		return NULL;
-	if (c->size > 0)
-		return NULL;
-	int iter = c->storage;
-	struct storage_pile *pile;
-	while ((pile = list_each(storage_pile, &C->T, &iter))) {
-		if (pile->type == type)
-			return pile;
-	}
-	return NULL;
-}
-
-static int
-container_put_(struct container *C, int id, int type, int count, int dryrun) {
-	struct storage_pile *p = get_pile(C, id, type);
-	int space = p->cap - p->stock - p->reserve;
-	if (space <= 0)
-		return 0;
-	if (space < count)
-		count = space;
-	if (!dryrun) {
-		p->stock += count;
-	}
-	return count;
-}
-
-static int
-container_take_(struct container *C, int id, int type, int count, int dryrun) {
-	struct storage_pile *p = get_pile(C, id, type);
-	int stock = p->stock - p->book;
-	if (stock <= 0)
-		return 0;
-	if (stock < count) {
-		count = stock;
-	}
-	if (!dryrun) {
-		p->stock -= count;
-	}
-	return count;
-}
-
 static int
 lcontainer_new(lua_State *L) {
 	struct container *C = (struct container *)lua_newuserdatauv(L, sizeof(*C), 2);
-	static struct container_api capi = {
-		container_put_,
-		container_take_,
-	};
-	C->capi.api_table = &capi;
 	group_init(L, -1, 1, &C->G, sizeof(struct box));
 	list_init(storage_pile, &C->T, 2);
 	if (luaL_newmetatable(L, CONTAINER_LUAKEY)) {

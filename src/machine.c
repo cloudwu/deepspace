@@ -4,21 +4,32 @@
 #include "lgame.h"
 #include "powergrid.h"
 #include "group.h"
+#include "list.h"
 
 struct machine {
 	int appliance;	// for powergrid
 	int productivity;	// 0x10000 : 100%
 	int power;	// for powergrid, set by recipe
 	int worktime;	// set by recipe
+	int working;	// in working list ?
 	uint64_t worktick;	// fixnumber ( worktick * 0x10000 => worktime ) 
 };
 
+struct working {
+	int id;
+};
+
+LIST_TYPE(working)
+
 struct machine_arena {
 	struct group M;
+	struct list working;
+	int working_list;
 };
 
 #define MACHINE_MACHINE 1
-#define MACHINE_COUNT 1
+#define MACHINE_WORKING 2
+#define MACHINE_COUNT 2
 
 // set productivity to turn on/off the machine
 // init machine with recipe { .id, .power .worktime .input, .output }
@@ -78,7 +89,11 @@ lmachine_add(lua_State *L) {
 	m->worktime = 0;
 	m->worktick = 0;
 	m->productivity = 0;
-	lua_pushinteger(L, group_handle(&M->M, m));
+	int id = group_handle(&M->M, m);
+	struct working *w = list_add(working, &M->working, &M->working_list, MACHINE_WORKING);
+	w->id = id;
+	m->working = 1;
+	lua_pushinteger(L, id);
 	return 1;
 }
 
@@ -124,6 +139,16 @@ lmachine_remove(lua_State *L) {
 	}
 }
 
+static void
+set_working(lua_State *L, struct machine_arena *M, struct machine *m) {
+	if (m->working)
+		return;
+	m->working = 1;
+	int id = group_handle(&M->M, m);
+	struct working *w = list_add(working, &M->working, &M->working_list, MACHINE_WORKING);
+	w->id = id;
+}
+
 static int
 lset_productivity(lua_State *L) {
 	struct machine_arena *M = getM(L);
@@ -132,6 +157,8 @@ lset_productivity(lua_State *L) {
 	if (m == NULL)
 		return luaL_error(L, "Invalid machine id %d", id);
 	double v = luaL_checknumber(L, 3);
+	if (m->productivity == 0)
+		set_working(L, M, m);
 	m->productivity = (int)(v * 0x10000 + 0.5);
 	return 0;
 }
@@ -164,11 +191,14 @@ lmachine_export(lua_State *L) {
 }
 
 static void
-import_machine(lua_State *L, struct group *M, int recipe_index) {
+import_machine(lua_State *L, struct machine_arena *M, int recipe_index) {
 	int h = get_key(L, -1, "id");
-	struct machine *m = (struct machine *)group_import(L, -1, M, h);
+	struct machine *m = (struct machine *)group_import(L, -1, &M->M, h);
 	if (m == NULL)
 		luaL_error(L, "Can't import machine id = %d", h);
+	struct working *w = list_add(working, &M->working, &M->working_list, MACHINE_WORKING);
+	w->id = h;
+	m->working = 1;
 	m->appliance = get_key(L, -1, "appliance");
 	m->productivity = get_key(L, -1, "productivity");
 	m->worktick = get_key(L, -1, "worktick");
@@ -183,9 +213,11 @@ lmachine_import(lua_State *L) {
 	luaL_checktype(L, 2, LUA_TTABLE);	// data
 	luaL_checktype(L, 3, LUA_TTABLE);	// recipe
 	group_clear(&M->M);
+	list_reset(working, &M->working);
+	M->working_list = LIST_EMPTY;
 	int index = 0;
 	while (lua_geti(L, 2, ++index) == LUA_TTABLE) {
-		import_machine(L, &M->M, 3);
+		import_machine(L, M, 3);
 		lua_pop(L, 1);
 	}
 	return 0;
@@ -210,23 +242,24 @@ lmachine_info(lua_State *L) {
 	return 1;
 }
 
-static void
+static int
 machine_work(struct machine *m, struct powergrid *P) {
 	if (m->productivity == 0)	// stop
-		return;
+		return 1;
 	if (m->worktick >= ((uint64_t)m->worktime << 16)) {
 		// finish
-		return;
+		return 1;
 	}
 	if (m->appliance) {
 		// need power
 		struct capacitance * cap = powergrid_get_level(P, m->appliance);
 		if (cap->level) {
-			return;						
+			return 0;
 		}
 		cap->level = m->power;
 	}
 	m->worktick += m->productivity;
+	return 0;
 }
 
 static int
@@ -234,9 +267,15 @@ lmachine_tick(lua_State *L) {
 	struct machine_arena *M = getM(L);
 	struct powergrid *P = luaL_checkudata(L, 2, POWERGRID_LUAKEY);
 
-	struct machine *m = NULL;
-	while((m = (struct machine *)group_each(&M->M, m))) {
-		machine_work(m, P);
+	int iter = M->working_list;
+	struct working *w = NULL;
+	while ((w = list_each(working, &M->working, &iter))) {
+		struct machine *m = (struct machine *)group_object(&M->M, w->id);
+		int stop = machine_work(m, P);
+		if (stop) {
+			m->working = 0;
+			list_remove(working, &M->working, &M->working_list, w);
+		}
 	}
 	return 0;
 }
@@ -279,6 +318,7 @@ lmachine_reset(lua_State *L) {
 	if (m == NULL)
 		return luaL_error(L, "Invalid machine id %d", id);
 	m->worktick = 0;
+	set_working(L, M, m);
 	return 0;
 }
 
@@ -286,6 +326,8 @@ static int
 lmachine_new(lua_State *L) {
 	struct machine_arena *M = (struct machine_arena *)lua_newuserdatauv(L, sizeof(struct machine_arena), MACHINE_COUNT);
 	group_init(L, -1, MACHINE_MACHINE, &M->M, sizeof(struct machine));
+	list_init(working, &M->working, MACHINE_WORKING);
+	M->working_list = LIST_EMPTY;
 	if (luaL_newmetatable(L, "GAME_MACHINE")) {
 		luaL_Reg l[] = {
 			{ "add", lmachine_add },
