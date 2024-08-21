@@ -89,10 +89,11 @@ static int
 lmachine_add(lua_State *L) {
 	struct machine_arena *M = getM(L);
 	struct machine *m = (struct machine *)group_add(L, 1, &M->M);
+	luaL_checktype(L, 2, LUA_TTABLE);	// { .input, .output , .appliance }
 	m->recipe = 0;
-	m->input_box = 0;
-	m->output_box = 0;
-	m->appliance = 0;
+	m->input_box = opt_key(L, 2, "input", 0);
+	m->output_box = get_key(L, 2, "output");	// void is also a type;
+	m->appliance = opt_key(L, 2, "appliance", 0);
 	m->power = 0;
 	m->worktime = 0;
 	m->worktick = 0;
@@ -101,22 +102,6 @@ lmachine_add(lua_State *L) {
 	m->output_recipe = LIST_EMPTY;
 	lua_pushinteger(L, group_handle(&M->M, m));
 	return 1;
-}
-
-static int
-lmachine_init(lua_State *L) {
-	struct machine_arena *M = getM(L);
-	int id = luaL_checkinteger(L, 2);
-	luaL_checktype(L, 3, LUA_TTABLE);	// { .input, .output , .appliance }
-	struct machine *m = (struct machine *)group_object(&M->M, id);
-	if (m == NULL)
-		return luaL_error(L, "Invalid machine id %d", id);
-	m->input_box = opt_key(L, 3, "input", 0);
-	m->output_box = get_key(L, 3, "output");	// void is also a type
-	m->appliance = opt_key(L, 3, "appliance", 0);
-	if (m->appliance == 0 && m->power != 0)
-		return luaL_error(L, "Need .appliance for power %d", m->power);
-	return 0;
 }
 
 static int
@@ -143,6 +128,10 @@ lset_recipe(lua_State *L) {
 		return luaL_error(L, "Invalid machine id %d", id);
 	m->recipe = get_key(L, 3, "id");
 	m->power = opt_key(L, 3, "power", 0);
+	if (m->appliance == 0 && m->power != 0)
+		return luaL_error(L, "No appliance but power = %d", m->power);
+	if (m->appliance != 0 && m->power == 0)
+		return luaL_error(L, "appliance need power");
 	m->worktime = get_key(L, 3, "worktime");
 	m->productivity = get_fixnumber(L, 3, "productivity");
 
@@ -410,9 +399,8 @@ lmachine_new(lua_State *L) {
 	if (luaL_newmetatable(L, "GAME_MACHINE")) {
 		luaL_Reg l[] = {
 			{ "add", lmachine_add },
-			{ "init", lmachine_init },
-			{ "set_recipe", lset_recipe },
 			{ "remove", lmachine_remove },
+			{ "set_recipe", lset_recipe },
 			{ "set_productivity", lset_productivity },
 			{ "tick", lmachine_tick },
 			{ "export", lmachine_export },
