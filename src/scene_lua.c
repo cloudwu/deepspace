@@ -19,20 +19,6 @@ getfield(lua_State *L, int idx, const char *key) {
 	return luaL_error(L, "Need integer for .%s, It's %s", key, lua_typename(L, t));
 }
 
-static int
-getindex(lua_State *L, int idx, int i) {
-	int t = lua_geti(L, idx, i);
-	if (t == LUA_TNIL) {
-		return luaL_error(L, "No [%d] for %d", i, idx);
-	} else if (lua_isinteger(L, -1)) {
-		int	r = lua_tointeger(L, -1);
-		lua_pop(L, 1);
-		return r;
-	}
-	return luaL_error(L, "Need integer for [%d], It's %s", i, lua_typename(L, t));
-}
-
-
 static size_t
 count_size(int layer, int x, int y) {
 	size_t meta = sizeof(struct scene) + (layer - 1) * sizeof(slot_t *);
@@ -277,6 +263,9 @@ lscene_set(lua_State *L) {
 	return 1;
 }
 
+#define MAX_STEP 4096
+
+/*
 static int
 lscene_pathmap(lua_State *L) {
 	struct scene *s = get_scene(L);
@@ -297,8 +286,6 @@ lscene_pathmap(lua_State *L) {
 	scene_pathmap(s, layer, n, pos, target);
 	return 0;
 }
-
-#define MAX_STEP 4096
 
 static int
 lscene_path(lua_State *L) {
@@ -334,6 +321,7 @@ lscene_path(lua_State *L) {
 	lua_pushinteger(L, dist);
 	return 1;
 }
+*/
 
 static int
 lscene_build(lua_State *L) {
@@ -404,8 +392,8 @@ lscene_new(lua_State *L) {
 			{ "clear", lscene_clear },
 			{ "get", lscene_get },
 			{ "set", lscene_set },
-			{ "pathmap", lscene_pathmap },
-			{ "path", lscene_path },
+//			{ "pathmap", lscene_pathmap },
+//			{ "path", lscene_path },
 			{ "build", lscene_build },
 			{ "__index", NULL },
 			{ NULL, NULL },

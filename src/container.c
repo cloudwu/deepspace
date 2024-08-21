@@ -535,6 +535,139 @@ lcontainer_info(lua_State *L) {
 	return 1;
 }
 
+static struct storage_pile *
+get_pile(struct container *C, int id, int type) {
+	struct box *c = group_object(&C->G, id);
+	if (c == NULL)
+		return NULL;
+	if (c->size > 0)
+		return NULL;
+	int iter = c->storage;
+	struct storage_pile *pile;
+	while ((pile = list_each(storage_pile, &C->T, &iter))) {
+		if (pile->type == type)
+			return pile;
+	}
+	return NULL;
+}
+
+static int
+container_put_(struct container *C, int id, int type, int count, int dryrun) {
+	struct storage_pile *p = get_pile(C, id, type);
+	int space = p->cap - p->stock - p->reserve;
+	if (space <= 0)
+		return 0;
+	if (space < count)
+		count = space;
+	if (!dryrun) {
+		p->stock += count;
+	}
+	return count;
+}
+
+static int
+container_take_(struct container *C, int id, int type, int count, int dryrun) {
+	struct storage_pile *p = get_pile(C, id, type);
+	int stock = p->stock - p->book;
+	if (stock <= 0)
+		return 0;
+	if (stock < count) {
+		count = stock;
+	}
+	if (!dryrun) {
+		p->stock -= count;
+	}
+	return count;
+}
+
+static const char *
+read_integer(const char *ptr, int *output) {
+	int v = 0;
+	while (!(*ptr >= '0' && *ptr <='9')) {
+		++ptr;
+	}
+	while (*ptr >= '0' && *ptr <='9') {
+		v = v * 10 + (*ptr - '0');
+		++ptr;
+	}
+	*output = v;
+	return ptr;
+}
+
+static int
+lcontainer_consume(lua_State *L) {
+	struct container * C = getC(L);
+	int id = luaL_checkinteger(L, 2);
+	struct box *c = group_object(&C->G, id);
+	if (c == NULL)
+		return luaL_error(L, "No id %d", id);
+	if (c->size >= 0) {
+		return luaL_error(L, "container %d is not an input box", id);
+	}
+	const char * formula = luaL_checkstring(L, 3);
+	const char * ptr = formula;
+	while (*ptr != '=' && *ptr != 0) {
+		int type, count;
+		ptr = read_integer(ptr, &type);
+		if (*ptr != '*')
+			return luaL_error(L, "Invalid formula %s", formula);
+		ptr = read_integer(ptr+1, &count);
+		if (count != container_take_(C, id, type, count, 1)) {
+			// not enough
+			return 0;
+		}
+	}
+	ptr = formula;
+	while (*ptr != '=' && *ptr != 0) {
+		int type, count;
+		ptr = read_integer(ptr, &type);
+		ptr = read_integer(ptr+1, &count);
+		container_take_(C, id, type, count, 0);
+	}
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
+static int
+lcontainer_output(lua_State *L) {
+	struct container * C = getC(L);
+	int id = luaL_checkinteger(L, 2);
+	struct box *c = group_object(&C->G, id);
+	if (c == NULL)
+		return luaL_error(L, "No id %d", id);
+	if (c->size != 0) {
+		return luaL_error(L, "container %d is not a output box", id);
+	}
+	const char * formula = luaL_checkstring(L, 3);
+	while (*formula != '=' && *formula != 0) {
+		++formula;
+	}
+	if (*formula != '=') {
+		return luaL_error(L, "Invalid formula %s", formula);
+	}
+	const char * ptr = formula;
+	while (*ptr != 0) {
+		int type, count;
+		ptr = read_integer(ptr, &type);
+		if (*ptr != '*')
+			return luaL_error(L, "Invalid formula %s", formula);
+		ptr = read_integer(ptr+1, &count);
+		if (count != container_put_(C, id, type, count, 1)) {
+			// not enough
+			return 0;
+		}
+	}
+	ptr = formula;
+	while (*ptr != 0) {
+		int type, count;
+		ptr = read_integer(ptr, &type);
+		ptr = read_integer(ptr+1, &count);
+		container_put_(C, id, type, count, 0);
+	}
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
 static int
 lcontainer_new(lua_State *L) {
 	struct container *C = (struct container *)lua_newuserdatauv(L, sizeof(*C), 2);
@@ -556,6 +689,8 @@ lcontainer_new(lua_State *L) {
 			{ "import", lcontainer_import },
 			{ "find", lcontainer_find },
 			{ "info", lcontainer_info },	// for debug
+			{ "consume", lcontainer_consume },	// for input box
+			{ "output", lcontainer_output },	// for output box
 			{ "__index", NULL },
 			{ NULL, NULL },
 		};

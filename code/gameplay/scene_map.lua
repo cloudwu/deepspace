@@ -1,15 +1,16 @@
 local core = require "game.scene"
+local pathmap = require "game.pathmap"
 local util = require "util"
 local setting = ant.setting
+
+pathmap.dist = pathmap.dist_near
+pathmap.path = pathmap.path_near
 
 local layer_name = {
 	"floor",
 	"region",	-- for pathmap
-	"pathmap_storage",
 }
 local layer = util.index_map(layer_name, -1)
-local pathmap_n = setting.pathmap
-local name_layer_n = #layer_name
 
 return function (scene)
 	scene.x = setting.scene.x
@@ -17,8 +18,9 @@ return function (scene)
 	local data = core.new {
 		x = scene.x,
 		y = scene.y,
-		layer = pathmap_n + name_layer_n,
+		layer = #layer_name,
 	}
+	local path = pathmap.new(data, layer.region)
 
 	local map_dirty = false
 	local build_set = {}
@@ -62,23 +64,9 @@ return function (scene)
 		storage[index] = enable and true or nil
 		storage_dirty = true
 	end
-	
---	local function debug_map(layer)
---		local temp = {}
---		for y = 0, scene.y -1 do
---			for x = 0, scene.x - 1 do
---				local v = data:get(x, y, layer)
---				temp[x+1] = v
---			end
---			print(table.concat(temp, " "))
---		end
---	end
 
 	local function build_storage_pathmap()
-		local t = {
-			block = layer.region,
-			target = layer.pathmap_storage,
-		}
+		local t = {}
 		local n = 1
 		for index in pairs(storage) do
 			local x, y = index >> 16 , index & 0xffff
@@ -86,15 +74,13 @@ return function (scene)
 			t[n+1] = y
 			n = n + 2
 		end
-		data:pathmap(t)
+		path:storage_map(t)
 	end
-
-	local pathmap_cache = {} -- index -> pos
 
 	local function rebuild()
 		build_region()
 		build_storage_pathmap()
-		pathmap_cache = {}
+		path:reset()
 	end
 	
 	local function gen_storage_pathmap()
@@ -108,41 +94,28 @@ return function (scene)
 	
 	function scene.storage_path(t)
 		gen_storage_pathmap()
-		t.layer = layer.pathmap_storage
-		return data:path(t)
+		return path:storage_path(t)
 	end
 	
 	function scene.storage_dist(x, y)
 		gen_storage_pathmap()
-		return data:get(x, y, layer.pathmap_storage)
+		return path:storage_dist(x, y)
 	end
 	
 	local temp = { block = layer.region }
 	
-	local function gen_pathmap(x, y)
+	function scene.path(t, x, y)
 		if map_dirty then
 			rebuild()
 		end
-		local pos = x << 16 | y
-		local index = pos % pathmap_n
-		local ret = index + name_layer_n
-		if pathmap_cache[index] ~= pos then
-			temp.target = ret
-			temp[1] = x
-			temp[2] = y
-			data:pathmap(temp)
-			pathmap_cache[index] = pos
-		end
-		return ret
-	end
-	
-	function scene.path(t, x, y)
-		t.layer = gen_pathmap(x,y)
-		return data:path(t)
+		return path:path(t, x, y)
 	end
 	
 	function scene.dist(x1, y1, x2, y2)
-		return data:get(x2, y2, gen_pathmap(x1,y1))
+		if map_dirty then
+			rebuild()
+		end
+		return path:dist(x1, y1, x2, y2)
 	end
 
 	function scene.export_floor()
