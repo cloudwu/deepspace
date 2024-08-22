@@ -20,7 +20,7 @@ return function (inst)
 				local dist = scene.dist(x, y, task.x, task.y)
 				if dist > 0	and (min_dist == nil or dist < min_dist) then
 					local storage_list = container.find_storage(task.material)
-					if scene.reachable(x, y, storage_list) then
+					if storage_list and scene.reachable(x, y, storage_list) then
 						-- can get material
 						min_dist = dist
 						best_id = id
