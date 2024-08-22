@@ -16,7 +16,7 @@ struct pathmap {
 	int x;
 	int y;
 	int shift;
-	uint64_t cache_index[CACHE_SLOTS-1];
+	uint64_t cache_index[CACHE_SLOTS];
 	slot_t *layer;
 	struct scene cache;
 };

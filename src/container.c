@@ -363,7 +363,7 @@ lcontainer_take(lua_State *L) {
 		list_remove(storage_pile, &C->T, &c->storage, p);
 	}
 	lua_pushinteger(L, count);
-	return 10;
+	return 1;
 }
 
 static int
