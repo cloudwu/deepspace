@@ -265,64 +265,6 @@ lscene_set(lua_State *L) {
 
 #define MAX_STEP 4096
 
-/*
-static int
-lscene_pathmap(lua_State *L) {
-	struct scene *s = get_scene(L);
-	luaL_checktype(L, 2, LUA_TTABLE);
-	int layer = getfield(L, 2, "block");
-	int target = getfield(L, 2, "target");
-	int n = lua_rawlen(L, 2) / 2;
-	struct scene_coord temp[2048];
-	struct scene_coord *pos = temp;
-	if (n > sizeof(temp)/sizeof(temp[0])) {
-		pos = (struct scene_coord *)lua_newuserdatauv(L, n * sizeof(temp[0]), 0);
-	}
-	int i;
-	for (i=0;i<n;i++) {
-		pos[i].x = getindex(L, 2, i*2+1);
-		pos[i].y = getindex(L, 2, i*2+2);
-	}
-	scene_pathmap(s, layer, n, pos, target);
-	return 0;
-}
-
-static int
-lscene_path(lua_State *L) {
-	struct scene *s = get_scene(L);
-	luaL_checktype(L, 2, LUA_TTABLE);
-	int layer = getfield(L, 2, "layer");
-	struct scene_coord pos;
-	pos.x = getfield(L, 2, "x");
-	pos.y = getfield(L, 2, "y");
-	struct scene_coord output[MAX_STEP];
-	int dist = scene_path(s, layer, pos, MAX_STEP, output);
-	int i=0;
-	if (dist > 0) {
-		for (i=0;i<MAX_STEP-1;i++) {
-			if (output[i].x == pos.x && output[i].y == pos.y)
-				break;
-		}
-		int n = i;
-		for (i=0;i<n;i++) {
-			lua_pushinteger(L, output[i].x);
-			lua_rawseti(L, 2, i*2+1);
-			lua_pushinteger(L, output[i].y);
-			lua_rawseti(L, 2, i*2+2);
-		}
-	}
-	int n = lua_rawlen(L, 2);
-	i = i*2+1;
-	while (i <= n) {
-		lua_pushnil(L);
-		lua_rawseti(L, 2, i);
-		++i;
-	}
-	lua_pushinteger(L, dist);
-	return 1;
-}
-*/
-
 static int
 lscene_build(lua_State *L) {
 	struct scene *s = get_scene(L);
@@ -350,6 +292,31 @@ lscene_build(lua_State *L) {
 	}
 	scene_build(s, layer, n, p);
 	return 0;
+}
+
+static int
+lscene_debug(lua_State *L) {
+	struct scene *scene = get_scene(L);
+	int layer = luaL_checkinteger(L, 2);
+	if (layer < 0 || layer >= scene->layer_n)
+		return luaL_error(L, "Invalid layer = %d", layer);
+	
+	luaL_Buffer b;
+	luaL_buffinit(L, &b);
+	slot_t *s = scene->layer[layer];
+
+	int i,j;
+	int x = 1 << scene->shift_x;
+	for (i=0;i<scene->y;i++) {
+		for (j=0;j<x;j++) {
+			char tmp[32];
+			snprintf(tmp, sizeof(tmp), "%4d", *s++);
+			luaL_addstring(&b, tmp);
+		}
+		luaL_addchar(&b, '\n');
+	}
+	luaL_pushresult(&b);
+	return 1;
 }
 
 static int
@@ -392,8 +359,7 @@ lscene_new(lua_State *L) {
 			{ "clear", lscene_clear },
 			{ "get", lscene_get },
 			{ "set", lscene_set },
-//			{ "pathmap", lscene_pathmap },
-//			{ "path", lscene_path },
+			{ "debug", lscene_debug },
 			{ "build", lscene_build },
 			{ "__index", NULL },
 			{ NULL, NULL },

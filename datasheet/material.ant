@@ -1,6 +1,8 @@
 material :
   iron :
     id : 1
+    stack : 100
   wood :
     id : 2
+    stack : 100
     

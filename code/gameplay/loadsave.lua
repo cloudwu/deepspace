@@ -37,14 +37,30 @@ end
 
 save.__close = save.close
 
+local function tolist(v)
+	local t = {}
+	for i = 1, #v do
+		local item = v[i]
+		if type(item) == "string" then
+			t[i] = datalist.quote(item)
+		else
+			t[i] = tostring(item)
+		end
+	end
+	return "{ " .. table.concat(t, ",") .. " }"
+end
+
 local function write_kv(f, t, ident)
 	local keys = util.keys(t)
 	table.sort(keys)
 	for i = 1, #keys do	
 		local k = keys[i]
 		local v = t[k]
-		if type(v) == "string" then
+		local t = type(v)
+		if t == "string" then
 			v = datalist.quote(v)
+		elseif t == "table" then
+			v = tolist(v)
 		else
 			v = tostring(v)
 		end

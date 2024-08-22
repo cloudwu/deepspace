@@ -11,6 +11,10 @@ return function (scene)
 	function blueprint.del(id)
 		add_queue[#add_queue+1] = { what = "blueprint", action = "del", id = id}
 	end
+	
+	function blueprint.info(id, text)
+		add_queue[#add_queue+1] = { what = "blueprint", action = "info", id = id, text = text}
+	end
 
 	function blueprint.update(message)
 		local n = #message

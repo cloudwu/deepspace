@@ -23,6 +23,9 @@ end
 function box.update()
 	for obj in pairs(all) do
 		obj.r = obj.r + 1
+		if obj.text then
+			ant.print(obj, obj.text)
+		end
 	end
 end
 

@@ -38,6 +38,7 @@ end
 add_dir "/datasheet"
 
 local material_idmap = {}
+local material_stack = {}
 
 local function arrange_material(mat)
 	local idlist = {}
@@ -46,6 +47,7 @@ local function arrange_material(mat)
 		v.name = name
 		material_idmap[name] = id
 		idlist[id] = v
+		material_stack[id] = v.stack
 	end
 	return idlist
 end
@@ -80,5 +82,6 @@ data.building = arrange_buildings(data.building, data.material)
 data.material = arrange_material(data.material)
 data.building_id = building_idmap
 data.material_id = material_idmap
+data.material_stack = material_stack
 
 return data

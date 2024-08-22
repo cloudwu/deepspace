@@ -16,14 +16,14 @@ struct pathmap {
 	int x;
 	int y;
 	int shift;
-	uint64_t cache_index[CACHE_SLOTS];
+	uint64_t cache_index[CACHE_SLOTS-1];
 	slot_t *layer;
 	struct scene cache;
 };
 
 static size_t
 pathmap_size(int x, int y) {
-	int layer = CACHE_SLOTS + 1;
+	int layer = CACHE_SLOTS;
 	size_t meta = sizeof(struct pathmap) + (layer - 1) * sizeof(slot_t *);
 	meta += layer * (x * y) * sizeof(slot_t);
 	return meta;
@@ -247,19 +247,6 @@ getP(lua_State *L) {
 }
 
 static int
-getindex(lua_State *L, int idx, int i) {
-	int t = lua_geti(L, idx, i);
-	if (t == LUA_TNIL) {
-		return luaL_error(L, "No [%d] for %d", i, idx);
-	} else if (lua_isinteger(L, -1)) {
-		int	r = lua_tointeger(L, -1);
-		lua_pop(L, 1);
-		return r;
-	}
-	return luaL_error(L, "Need integer for [%d], It's %s", i, lua_typename(L, t));
-}
-
-static int
 getfield(lua_State *L, int idx, const char *key) {
 	int t = lua_getfield(L, idx, key);
 	if (t == LUA_TNIL) {
@@ -270,25 +257,6 @@ getfield(lua_State *L, int idx, const char *key) {
 		return r;
 	}
 	return luaL_error(L, "Need integer for .%s, It's %s", key, lua_typename(L, t));
-}
-
-static int
-lstorage_map(lua_State *L) {
-	struct pathmap * P = getP(L);
-	luaL_checktype(L, 2, LUA_TTABLE);
-	int n = lua_rawlen(L, 2) / 2;
-	struct scene_coord temp[2048];
-	struct scene_coord *pos = temp;
-	if (n > sizeof(temp)/sizeof(temp[0])) {
-		pos = (struct scene_coord *)lua_newuserdatauv(L, n * sizeof(temp[0]), 0);
-	}
-	int i;
-	for (i=0;i<n;i++) {
-		pos[i].x = getindex(L, 2, i*2+1);
-		pos[i].y = getindex(L, 2, i*2+2);
-	}
-	gen_pathmap(P, n, pos, CACHE_SLOTS);
-	return 0;
 }
 
 #define MAX_STEP 4096
@@ -322,25 +290,30 @@ path_to_table(lua_State *L, int index, struct pathmap *P, int layer, struct scen
 	return 1;
 }
 
-static int
-lstorage_path(lua_State *L) {
-	struct pathmap * P = getP(L);
-	luaL_checktype(L, 2, LUA_TTABLE);
-	struct scene_coord pos;
-	pos.x = getfield(L, 2, "x");
-	pos.y = getfield(L, 2, "y");
-	return path_to_table(L, 2, P, CACHE_SLOTS, pos);
+//  x(24bit) y (24bit) type(1bit)
+
+static inline uint64_t
+hash_key(unsigned int x, unsigned int y, int near) {
+	uint64_t key = ((uint64_t)x & 0xffffff) << 25 | ((uint64_t)y & 0xffffff) << 1 | (near & 1);
+	return key;
 }
 
 static int
 ldebug(lua_State *L) {
 	struct pathmap * P = getP(L);
-	int layer = luaL_checkinteger(L, 2);
-	if (layer < 0 && layer > CACHE_SLOTS)
-		return luaL_error(L, "Invalid layer %d", layer);
+	int x = luaL_checkinteger(L, 2);
+	int y = luaL_checkinteger(L, 3);
+	int near = lua_toboolean(L, 4);
+	uint64_t key = hash_key(x, y, near);
+
+	int index = key % CACHE_SLOTS;
+	if (P->cache_index[index] != key) {
+		return 0;
+	}
 	luaL_Buffer b;
 	luaL_buffinit(L, &b);
-	slot_t *s = P->cache.layer[layer];
+	slot_t *s = P->cache.layer[index];
+
 	int i,j;
 	for (i=0;i<P->y;i++) {
 		for (j=0;j<P->x;j++) {
@@ -352,12 +325,6 @@ ldebug(lua_State *L) {
 	}
 	luaL_pushresult(&b);
 	return 1;
-}
-
-static inline uint64_t
-hash_key(unsigned int x, unsigned int y, int near) {
-	uint64_t key = ((uint64_t)x & 0xffffff) << 25 | ((uint64_t)y & 0xffffff) << 1 | (near & 1);
-	return key;
 }
 
 static void
@@ -418,21 +385,10 @@ lpath_near(lua_State *L) {
 }
 
 static int
-lstorage_dist(lua_State *L) {
-	struct pathmap *P = getP(L);
-	struct scene_coord pos;
-	pos.x = luaL_checkinteger(L, 2);
-	pos.y = luaL_checkinteger(L, 3);
-	slot_t *s = get_dist(&P->cache, CACHE_SLOTS, pos);
-	lua_pushinteger(L, s == NULL ? 0 : *s);
-	return 1;	
-}
-
-static int
 ldist_(lua_State *L, int near) {
 	struct pathmap * P = getP(L);
-	int x = luaL_checkinteger(L, 4);	// end point x
-	int y = luaL_checkinteger(L, 5);	// end point y
+	int x = luaL_checkinteger(L, 4);	// cache end point x
+	int y = luaL_checkinteger(L, 5);	// cache end point y
 	check_xy(L, P, x, y);
 	int index = get_pathmap(P, x, y, near);
 	struct scene_coord pos;
@@ -477,19 +433,16 @@ lpathmap_new(lua_State *L) {
 	memset(&P->cache_index, ~0, sizeof(P->cache_index));
 	P->cache.shift_x = s->shift_x;
 	P->cache.y = s->y;
-	P->cache.layer_n = CACHE_SLOTS + 1;
+	P->cache.layer_n = CACHE_SLOTS;
 	int sz_map = s->y << s->shift_x;
-	slot_t *base = (slot_t *)&P->cache.layer[CACHE_SLOTS];
+	slot_t *base = (slot_t *)&P->cache.layer[CACHE_SLOTS-1];
 	int i;
-	for (i=0;i<=CACHE_SLOTS;i++) {
+	for (i=0;i<CACHE_SLOTS;i++) {
 		P->cache.layer[i] = base;
 		base += sz_map;
 	}
 	if (luaL_newmetatable(L, PATHMAP_LUAKEY)) {
 		luaL_Reg l[] = {
-			{ "storage_map", lstorage_map },
-			{ "storage_path", lstorage_path },
-			{ "storage_dist", lstorage_dist },
 			{ "path", lpath },
 			{ "dist", ldist },
 			{ "path_near", lpath_near },

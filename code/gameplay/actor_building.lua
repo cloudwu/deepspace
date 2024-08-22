@@ -4,6 +4,7 @@ return function (inst)
 	local scene = inst.scene
 	local blueprint = inst.blueprint
 	local schedule = inst.schedule
+	local container = inst.container
 
 	local building = {}
 	
@@ -24,6 +25,8 @@ return function (inst)
 		if not_complete then
 			return
 		end
+		container.del_pile(self.pile)
+		self.pile = nil
 		blueprint.del(self.id)
 		return true
 	end
@@ -44,6 +47,8 @@ return function (inst)
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
 			blueprint.add(building_id, self.id, x, y)
+			local pile_id = container.add_pile()
+			self.pile = pile_id
 			
 			local project = {}
 			self.project = project
@@ -56,6 +61,7 @@ return function (inst)
 					material = mat.id,
 					count = mat.count,
 					owner = self.id,
+					pile = pile_id,
 				}
 				project[p] = true
 			end
@@ -77,6 +83,12 @@ return function (inst)
 		end
 	end
 	
+	function building:debug()
+		if self.pile then
+			blueprint.info(self.id, container.pile_info(self.pile))
+		end
+	end
+	
 	function building:export(list)
 		local obj = {
 			name = self.name,
@@ -84,6 +96,7 @@ return function (inst)
 			x = self.x,
 			y = self.y,
 			building = self.building,
+			pile = self.pile,
 			status = self.status,
 		}
 		list[#list+1] = obj

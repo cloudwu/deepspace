@@ -3,16 +3,13 @@ local pathmap = require "game.pathmap"
 local util = require "util"
 local setting = ant.setting
 
-pathmap.dist = pathmap.dist_near
-pathmap.path = pathmap.path_near
-
 local layer_name = {
 	"floor",
 	"region",	-- for pathmap
 }
 local layer = util.index_map(layer_name, -1)
 
-return function (scene)
+return function (scene, inst)
 	scene.x = setting.scene.x
 	scene.y = setting.scene.y
 	local data = core.new {
@@ -56,53 +53,10 @@ return function (scene)
 		map_dirty = false
 	end
 
-	local storage_dirty = false
-	local storage = {}
-	
-	function scene.storage(x, y, enable)
-		local index = x << 16 | y
-		storage[index] = enable and true or nil
-		storage_dirty = true
-	end
-
-	local function build_storage_pathmap()
-		local t = {}
-		local n = 1
-		for index in pairs(storage) do
-			local x, y = index >> 16 , index & 0xffff
-			t[n] = x
-			t[n+1] = y
-			n = n + 2
-		end
-		path:storage_map(t)
-	end
-
 	local function rebuild()
 		build_region()
-		build_storage_pathmap()
 		path:reset()
 	end
-	
-	local function gen_storage_pathmap()
-		if map_dirty then
-			rebuild()
-		elseif storage_dirty then
-			build_storage_pathmap()
-		end
-		storage_dirty = false
-	end
-	
-	function scene.storage_path(t)
-		gen_storage_pathmap()
-		return path:storage_path(t)
-	end
-	
-	function scene.storage_dist(x, y)
-		gen_storage_pathmap()
-		return path:storage_dist(x, y)
-	end
-	
-	local temp = { block = layer.region }
 	
 	function scene.path(t, x, y)
 		if map_dirty then
@@ -117,7 +71,45 @@ return function (scene)
 		end
 		return path:dist(x1, y1, x2, y2)
 	end
-
+	
+	function scene.nearest(x, y, storage_list)
+		if map_dirty then
+			rebuild()
+		end
+		local min_dist, min_index
+		for i = 1, #storage_list do
+			local v = storage_list[i]
+			local id = v >> 32
+			local sx = (v >> 16) & 0xffff
+			local sy = v & 0xffff
+			local dist = path:dist(sx, sy, x, y)
+			if dist > 0 then
+				if min_dist == nil or dist < min_dist then
+					min_dist = dist
+					min_index = i
+				end
+			end
+		end
+		if min_index then
+			return min_index
+		end
+	end
+	
+	function scene.reachable(x, y, storage_list)
+		if map_dirty then
+			rebuild()
+		end
+		for i = 1, #storage_list do
+			local v = storage_list[i]
+			local sx = (v >> 16) & 0xffff
+			local sy = v & 0xffff
+			local dist = path:dist(sx, sy, x, y)
+			if dist > 0 then
+				return true
+			end
+		end
+	end
+	
 	function scene.export_floor()
 		return data:export(layer.floor)
 	end

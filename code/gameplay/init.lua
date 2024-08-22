@@ -1,6 +1,7 @@
 local scene = require "gameplay.scene"
 local floor = require "gameplay.floor"
 local worker = require "gameplay.worker"
+local container = require "gameplay.container"
 local box = require "gameplay.box"
 local actor = require "gameplay.actor"
 local blueprint = require "gameplay.blueprint"
@@ -35,14 +36,16 @@ local function new_game()
 	end
 	
 	local inst = {}
-	local scene = scene()
+	local container = container()
+	inst.container = container
+	local scene = scene(inst)
+	inst.scene = scene
 	local floor = floor(scene)
 	local worker = worker(scene)
-	local box = box(scene)
+	local box = box(inst)
 	local blueprint = blueprint(scene)
 	local schedule = schedule(scene)
 	
-	inst.scene = scene
 	inst.floor = floor
 	inst.worker = worker
 	inst.box = box
@@ -57,7 +60,6 @@ local function new_game()
 	
 	function inst.update()
 		actor.update()
-		
 		floor.update(message)
 		scene.update(message)
 		worker.update(message)
@@ -94,7 +96,12 @@ function command:add_worker(x, y)
 end
 
 function command:add_box(x, y)
-	self.box.add(x, y)
+	local id = self.box.add(x, y)
+	local wood = datasheet.material_id.wood
+	local iron = datasheet.material_id.iron
+
+	self.box.put(id, wood, 200)
+	self.box.put(id, iron, 100)
 end
 
 local building_id <const> = datasheet.building_id.dummy
@@ -130,11 +137,16 @@ function command:publish(msg)
 	instance.actor.publish(msg)
 end
 
+function command:show_debug()
+	self.box.debug()
+end
+
 function gameplay.action(what, ... )
 	command[what](instance, ...)
 end
 
 local savelist <const> = {
+	"container",
 	"floor",
 	"box",
 	"schedule",

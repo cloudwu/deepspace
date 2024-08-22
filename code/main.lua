@@ -94,7 +94,11 @@ function game.update()
 		y = (y + 0.5) // 1 | 0
 		vfloor.focus(x, y, hud.mode())
 	end
-	vfloor.debug()
+	if show_debug then
+--		vfloor.debug()
+		gameplay.action "show_debug"
+		gameplay.action("publish", "debug")
+	end
 	vworker.update()
 	vbox.update()
 	for _, msg in ipairs(gameplay.update()) do

@@ -18,6 +18,13 @@ function blueprint.del(arg)
 	all[arg.id] = nil
 end
 
+function blueprint.info(arg)
+	local obj = all[arg.id]
+	if obj then
+		ant.print(obj, arg.text)
+	end
+end
+
 function blueprint.clear()
 	for id, obj in pairs(all) do
 		ant.remove(obj)

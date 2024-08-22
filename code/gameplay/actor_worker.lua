@@ -7,26 +7,29 @@ local task_temp = util.map_from_list({
 	return task.define(require ("gameplay.task_" .. name))
 end)
 
-local function get_task(scene, x, y, projects)
-	local min_dist
-	local best_id
-	for id, task in pairs(projects) do
-		if task.worker == nil then
-			local dist = scene.dist(x, y, task.x, task.y)
-			if dist > 0	then
-				if not min_dist or dist < min_dist then
-					min_dist = dist
-					best_id = id
-				end
-			end
-		end
-	end
-	return best_id, min_dist
-end
-
 return function (inst)
 	local schedule = inst.schedule
 	local scene = inst.scene
+	local container = inst.container
+	
+	local function get_task(scene, x, y, projects)
+		local min_dist
+		local best_id
+		for id, task in pairs(projects) do
+			if task.worker == nil then
+				local dist = scene.dist(x, y, task.x, task.y)
+				if dist > 0	and (min_dist == nil or dist < min_dist) then
+					local storage_list = container.find_storage(task.material)
+					if scene.reachable(x, y, storage_list) then
+						-- can get material
+						min_dist = dist
+						best_id = id
+					end
+				end
+			end
+		end
+		return best_id, min_dist
+	end
 
 	local worker = {}
 	
@@ -34,11 +37,6 @@ return function (inst)
 	
 	function status:idle()
 		local x, y = self.x, self.y
-		local dist = scene.storage_dist(x, y)
-		if dist == 0 then
-			-- can't get material
-			return
-		end
 		local task, min_dist = get_task(scene, x, y, schedule.list())
 		if task then
 			self.status = "wait_task"
@@ -52,7 +50,15 @@ return function (inst)
 		if err then
 			schedule.cancel(self.task_id, self.id)
 		elseif not cont then
-			schedule.complete(self.task_id, self.id)
+			local task = self.task.task
+			local stock = container.pile_stock(task.pile, task.material) or 0
+			if stock < task.count then
+				task.count = task.count - stock
+				-- renew task
+				schedule.cancel(self.task_id, self.id)								
+			else
+				schedule.complete(self.task_id, self.id)
+			end
 		else
 			return
 		end
@@ -94,10 +100,15 @@ return function (inst)
 		return status[self.status](self)
 	end
 	
+	function worker:debug()
+		self.object.text = container.pile_info(self.cargo)
+	end
+	
 	function worker:init()
 		if self.status == nil then
 			self.status = "idle"
 			self.object = inst.worker.add(self.id, self.x, self.y)
+			self.cargo = container.add_pile()
 		else
 			local x = self.x
 			local y = self.y
@@ -120,6 +131,7 @@ return function (inst)
 			y = self.object.y,
 			status = self.status,
 			task_id = self.task_id,
+			cargo = self.cargo,
 		}
 		if self.task then
 			obj.task = self.task:reset()

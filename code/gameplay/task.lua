@@ -5,8 +5,9 @@ local func_list_meta = {}
 function func_list_meta:__newindex(name, func)
 	local list = self._list
 	assert(list[name] == nil)
-	list[#list+1] = func
-	list.name = func
+	local n = #list+1
+	list[n] = func
+	list.name = n
 end
 
 local task_meta = {}; task_meta.__index = task_meta
@@ -38,9 +39,15 @@ function task_instance_meta:update()
 	elseif ret == TASK_YIELD then
 		-- task yield
 		return true
+	elseif ret == TASK_CANCEL then
+		return nil, err
 	end
-	assert(ret == TASK_CANCEL)
-	return nil, err
+	
+	local step = self[ret]
+	if step then
+		self._current = self[ret]
+		return self:update()
+	end
 end
 
 function task_instance_meta:checkpoint()

@@ -11,6 +11,9 @@ function worker.update()
 	
 	for obj in pairs(workers) do
 		obj.r = r
+		if obj.text then
+			ant.print(obj, obj.text)
+		end
 	end
 end
 

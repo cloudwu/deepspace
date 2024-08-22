@@ -24,6 +24,8 @@ void list_reset_(struct list *, size_t stride);
 #define list_object(T, t, id) (struct T *)list_object_(t, id, LIST_SIZEOF(T), LIST_OFFSETOF(T))
 static inline void *
 list_object_(struct list *T, int n, size_t stride, size_t off) {
+	if (n < 0)
+		return NULL;
 	return (void *)((char *)T->s + n * stride + off);
 }
 
