@@ -8,9 +8,11 @@ return function()
 	
 	local pos = {}
 	
-	function container.add_storage(x, y)
-		local bid = datasheet.building_id.storage
-		local id = storage:add(datasheet.building[bid].size)
+	function container.add_storage(x, y, id)
+		if not id then
+			local bid = datasheet.building_id.storage
+			id = storage:add(datasheet.building[bid].size)
+		end
 		pos[id] = x << 16 | y
 		return id
 	end

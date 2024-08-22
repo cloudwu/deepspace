@@ -11,10 +11,7 @@ return function (inst)
 	-- todo: remove
 	function box.add(x, y, cid)
 		if scene.valid(x, y) then
-			if cid == nil then
-				cid = container.add_storage(x, y)
-			end
-
+			cid = container.add_storage(x, y, cid)
 			local b = { x = x, y = y, id = cid }
 			all[cid] = b
 			add_queue[#add_queue+1] = b

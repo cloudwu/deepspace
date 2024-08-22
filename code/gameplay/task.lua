@@ -4,10 +4,10 @@ local func_list_meta = {}
 
 function func_list_meta:__newindex(name, func)
 	local list = self._list
-	assert(list[name] == nil)
+	assert(list[name] == nil, name)
 	local n = #list+1
 	list[n] = func
-	list.name = n
+	list[name] = n
 end
 
 local task_meta = {}; task_meta.__index = task_meta
@@ -21,6 +21,15 @@ local task_instance_meta = {
 	yield = TASK_YIELD,
 	cancel = TASK_CANCEL,
 }; task_instance_meta.__index = task_instance_meta
+
+function task_instance_meta:debug_info()
+	local idx = self._current
+	for k,v in pairs(self._list) do
+		if v == idx then
+			return k
+		end
+	end
+end
 
 function task_instance_meta:update()
 	local idx = self._current
@@ -43,11 +52,9 @@ function task_instance_meta:update()
 		return nil, err
 	end
 	
-	local step = self[ret]
-	if step then
-		self._current = self[ret]
-		return self:update()
-	end
+	local step = func_list[ret] or error ("No state :" .. ret)
+	self._current = func_list[ret]
+	return self:update()
 end
 
 function task_instance_meta:checkpoint()

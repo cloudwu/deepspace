@@ -92,7 +92,7 @@ return function (env)
 		worker.y = ( y + 0.5 ) // 1 | 0
 		return self.yield
 	end
-	function env:find_material()
+	function env:moveto_material()
 		local container = self.context.container
 		local stock = container.storage_stock(self.storage_id, self.task.material)
 		if not stock then
@@ -121,7 +121,11 @@ return function (env)
 	end
 	function env:check_destination()
 		self:checkpoint()
-		local path = self.path or {}
+		local path = self.path
+		if not path then
+			path = {}
+			self.path = path
+		end
 		path.x = self.worker.x
 		path.y = self.worker.y
 		local dist = self.context.scene.path(path, self.task.x, self.task.y)

@@ -101,7 +101,7 @@ return function (inst)
 	end
 	
 	function worker:debug()
-		self.object.text = container.pile_info(self.cargo)
+		self.object.text = self.status .. " " .. container.pile_info(self.cargo)
 	end
 	
 	function worker:init()
