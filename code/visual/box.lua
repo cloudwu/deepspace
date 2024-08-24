@@ -8,7 +8,7 @@ function box.new(arg)
 	obj.z = 0.5
 	obj.r = 0
 	obj.material = {
-		color = 0x0000ff,
+		color = 0x800000ff,
 	}
 	all[ant.primitive("cube", obj)] = true
 end

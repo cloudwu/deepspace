@@ -1,0 +1,23 @@
+---
+file: mesh.prefab
+op: copyfile
+path: trans.prefab
+---
+file: materials/Material.material
+op: copyfile
+path: materials/Material_trans.material
+---
+file: trans.prefab
+op: replace
+path: /2/data/material
+value: materials/Material_trans.material
+---
+file: trans.prefab
+op: add
+path: /2/data/render_layer
+value: translucent
+---
+file: materials/Material_trans.material
+op: add
+path: /state/BLEND
+value: ALPHA
