@@ -3,7 +3,7 @@ local floor = {}
 local cache = {}
 local objs = {}
 local focus = {}
-local focus_obj = ant.prefab("/asset/wall/floor.glb/trans.prefab", { x = 0, y = 0, z = 0.1 })
+local focus_obj = ant.prefab("/asset/wall/floor.glb/mesh.prefab", { x = 0, y = 0, z = 0.1 })
 
 local function enable_floor(x, y)
 	local index = x << 16 | y
@@ -12,12 +12,12 @@ local function enable_floor(x, y)
 		obj = table.remove(cache)
 		if obj then
 			obj.material.visible = true
-			obj.material.color = 0x80ffffff
+			obj.material.color = 0xffffffff
 			obj.x = x
 			obj.y = y
 			obj.z = 0
 		else
-			obj = ant.prefab("/asset/wall/floor.glb/trans.prefab", { x = x, y = y, z = 0, material = { color = 0xffffff } })
+			obj = ant.prefab("/asset/wall/floor.glb/mesh.prefab", { x = x, y = y, z = 0, material = { color = 0xffffff } })
 		end
 		objs[index] = obj
 	end
@@ -35,7 +35,7 @@ local function color_floor(x, y, color)
 			obj.y = y
 			obj.z = 0.1
 		else
-			obj = ant.prefab("/asset/wall/floor.glb/trans.prefab", { x = x, y = y, z = 0.1, material = { color = color }})
+			obj = ant.prefab("/asset/wall/floor.glb/mesh.prefab", { x = x, y = y, z = 0.1, material = { color = color }})
 		end
 		focus[index] = obj
 	end

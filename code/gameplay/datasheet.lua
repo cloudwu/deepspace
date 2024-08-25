@@ -78,10 +78,19 @@ local function arrange_buildings(building, mat)
 	return idlist
 end
 
+local function building_time(buildings)
+	local data = {}
+	for k,v in pairs(buildings) do
+		data[k] = { worktime = v.building_time }
+	end
+	return data
+end
+
 data.building = arrange_buildings(data.building, data.material)
 data.material = arrange_material(data.material)
 data.building_id = building_idmap
 data.material_id = material_idmap
 data.material_stack = material_stack
+data.blueprint = building_time(data.building)	-- todo: machine work time
 
 return data

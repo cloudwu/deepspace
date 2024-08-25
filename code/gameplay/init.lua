@@ -8,6 +8,8 @@ local blueprint = require "gameplay.blueprint"
 local datasheet = require "gameplay.datasheet"
 local schedule = require "gameplay.schedule"
 local loadsave = require "gameplay.loadsave"
+local machine = require "gameplay.machine"
+local powergrid = require "gameplay.powergrid"
 
 local savefile <const> = "savetest.ant"
 
@@ -38,6 +40,10 @@ local function new_game()
 	local inst = {}
 	local container = container()
 	inst.container = container
+	local powergrid = powergrid()
+	inst.powergrid = powergrid
+	local machine = machine(inst)
+	inst.machine = machine
 	local scene = scene(inst)
 	inst.scene = scene
 	local floor = floor(scene)
@@ -59,6 +65,8 @@ local function new_game()
 	end
 	
 	function inst.update()
+		machine.update()
+		powergrid.update()
 		actor.update()
 		floor.update(message)
 		scene.update(message)
@@ -147,6 +155,8 @@ end
 
 local savelist <const> = {
 	"container",
+	"powergrid",
+	"machine",
 	"floor",
 	"box",
 	"schedule",

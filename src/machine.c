@@ -1,5 +1,6 @@
 #include <lua.h>
 #include <lauxlib.h>
+#include <string.h>
 
 #include "lgame.h"
 #include "powergrid.h"
@@ -70,8 +71,13 @@ opt_key(lua_State *L, int index, const char *key, int opt) {
 }
 
 static int
-get_fixnumber(lua_State *L, int index, const char *key) {
-	if (lua_getfield(L, index, key) != LUA_TNUMBER) {
+opt_fixnumber(lua_State *L, int index, const char *key, int opt) {
+	int t = lua_getfield(L, index, key);
+	if (t == LUA_TNIL) {
+		lua_pop(L, 1);
+		return opt;
+	}
+	if (t != LUA_TNUMBER) {
 		return luaL_error(L, ".%s is not a number", key);
 	}
 	double v = lua_tonumber(L, -1);
@@ -118,7 +124,7 @@ lset_recipe(lua_State *L) {
 		c->level = m->power;		
 	}
 	m->worktime = get_key(L, 3, "worktime");
-	m->productivity = get_fixnumber(L, 3, "productivity");
+	m->productivity = opt_fixnumber(L, 3, "productivity", 0);
 	return 0;
 }
 
@@ -179,10 +185,10 @@ lmachine_export(lua_State *L) {
 	while ((obj = group_each(&M->M, obj))) {
 		int h = group_handle(&M->M, obj);
 		export_table_with_id(L, h);
-		lua_pushinteger(L, obj->appliance);
-		lua_setfield(L, -2, "appliance");
-		lua_pushinteger(L, obj->productivity);
-		lua_setfield(L, -2, "productivity");
+		if (obj->appliance != 0) {
+			lua_pushinteger(L, obj->appliance);
+			lua_setfield(L, -2, "appliance");
+		}
 		lua_pushinteger(L, obj->worktick);
 		lua_setfield(L, -2, "worktick");
 		lua_rawseti(L, -2, from_index++);
@@ -191,33 +197,33 @@ lmachine_export(lua_State *L) {
 }
 
 static void
-import_machine(lua_State *L, struct machine_arena *M, int recipe_index) {
-	int h = get_key(L, -1, "id");
-	struct machine *m = (struct machine *)group_import(L, -1, &M->M, h);
+import_machine(lua_State *L, struct machine_arena *M, int data_index) {
+	int h = get_key(L, data_index, "id");
+	struct machine *m = (struct machine *)group_import(L, data_index, &M->M, h);
 	if (m == NULL)
 		luaL_error(L, "Can't import machine id = %d", h);
 	struct working *w = list_add(working, &M->working, &M->working_list, MACHINE_WORKING);
 	w->id = h;
 	m->working = 1;
-	m->appliance = get_key(L, -1, "appliance");
-	m->productivity = get_key(L, -1, "productivity");
-	m->worktick = get_key(L, -1, "worktick");
-	m->power = opt_key(L, -1, "power", 0);
-	m->worktime = get_key(L, -1, "worktime");
-	lua_pop(L, 1);
+	m->appliance = opt_key(L, data_index, "appliance", 0);
+	m->worktick = get_key(L, data_index, "worktick");
+	m->productivity = 0;
+	m->power = 0;
+	m->worktime = 0;
 }
 
 static int
 lmachine_import(lua_State *L) {
 	struct machine_arena *M = getM(L);
-	luaL_checktype(L, 2, LUA_TTABLE);	// data
-	luaL_checktype(L, 3, LUA_TTABLE);	// recipe
 	group_clear(&M->M);
 	list_reset(working, &M->working);
 	M->working_list = LIST_EMPTY;
+	if (lua_isnoneornil(L, 2))
+		return 0;
+	luaL_checktype(L, 2, LUA_TTABLE);	// data
 	int index = 0;
 	while (lua_geti(L, 2, ++index) == LUA_TTABLE) {
-		import_machine(L, M, 3);
+		import_machine(L, M, -1);
 		lua_pop(L, 1);
 	}
 	return 0;
@@ -230,6 +236,28 @@ lmachine_info(lua_State *L) {
 	struct machine *m = (struct machine *)group_object(&M->M, id);
 	if (m == NULL)
 		luaL_error(L, "Can't import machine id = %d", id);
+	if (lua_isstring(L, 3)) {
+		const char *key = lua_tostring(L, 3);
+		if (strcmp(key, "workprocess") == 0) {
+			if (m->worktick == 0) {
+				lua_pushnumber(L, 0);
+			} else {
+				double worktick = (double)m->worktick/0x10000;
+				lua_pushnumber(L, worktick / m->worktime);
+			}
+		} else if (strcmp(key, "worktick") == 0) {
+			lua_pushnumber(L, (double)m->worktick/0x10000);
+		} else if (strcmp(key, "worktime") == 0) {
+			lua_pushinteger(L, m->worktime);
+		} else if (strcmp(key, "productivity") == 0) {
+			lua_pushnumber(L, (double)m->productivity/0x10000);
+		} else if (strcmp(key, "appliance") == 0) {
+			lua_pushinteger(L, m->appliance);
+		} else {
+			return luaL_error(L, "Invalid key %s", key);
+		}
+		return 1;
+	}
 	lua_newtable(L);
 	lua_pushinteger(L, m->appliance);
 	lua_setfield(L, -2, "appliance");

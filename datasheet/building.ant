@@ -4,9 +4,11 @@ building :
     material :
       wood : 100
       iron : 30
+    building_time : 100
   storage :
     id : 2
     material :
       wood : 10
     size : 10
+    building_time : 100
       

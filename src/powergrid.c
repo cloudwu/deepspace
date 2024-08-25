@@ -217,10 +217,12 @@ import_handle(lua_State *L, struct group *g, int h) {
 static int
 lpowergrid_import(lua_State *L) {
 	struct powergrid *P = getP(L);
-	luaL_checktype(L, 2, LUA_TTABLE);
 	group_clear(&P->generator);
 	group_clear(&P->appliance);
 	group_clear(&P->battery);
+	if (lua_isnoneornil(L, 2))
+		return 0;
+	luaL_checktype(L, 2, LUA_TTABLE);
 	int index = 0;
 	while(lua_geti(L, 2, ++index) == LUA_TTABLE) {
 		int id = get_key(L, -1, "id");

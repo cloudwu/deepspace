@@ -3,6 +3,7 @@ local util = require "util"
 
 local task_temp = util.map_from_list({
 	"supply",
+	"building",
 }, function (name)
 	return task.define(require ("gameplay.task_" .. name))
 end)
@@ -12,16 +13,37 @@ return function (inst)
 	local scene = inst.scene
 	local container = inst.container
 	
-	local function get_task(scene, x, y, projects)
+	local taskcheck = {}
+	
+	function taskcheck:supply(task)
+		local storage_list = container.find_storage(task.material)
+		-- check material pos
+		return storage_list and scene.reachable(self.x, self.y, storage_list)
+	end
+	
+	function taskcheck:building(task)
+		-- always can do building (todo)
+		return true
+	end
+	
+	local function check_task(self, task)
+		local cf = taskcheck[task.type]
+		if not cf then
+			-- unknown task
+			return
+		end
+		return cf(self, task)
+	end
+	
+	local function get_task(scene, self, projects)
+		local x, y = self.x, self.y
 		local min_dist
 		local best_id
 		for id, task in pairs(projects) do
 			if task.worker == nil then
 				local dist = scene.dist(x, y, task.x, task.y)
 				if dist > 0	and (min_dist == nil or dist < min_dist) then
-					local storage_list = container.find_storage(task.material)
-					if storage_list and scene.reachable(x, y, storage_list) then
-						-- can get material
+					if check_task(self, task) then
 						min_dist = dist
 						best_id = id
 					end
@@ -36,8 +58,7 @@ return function (inst)
 	local status = {}
 	
 	function status:idle()
-		local x, y = self.x, self.y
-		local task, min_dist = get_task(scene, x, y, schedule.list())
+		local task, min_dist = get_task(scene, self, schedule.list())
 		if task then
 			self.status = "wait_task"
 			-- todo: priority ~= 100 
@@ -66,7 +87,21 @@ return function (inst)
 		self.task = nil
 		self.status = "idle"
 	end
-
+	
+	function status:building()
+		local cont, err = self.task:update()
+		if err then
+			schedule.cancel(self.task_id, self.id)
+		elseif not cont then
+			schedule.complete(self.task_id, self.id)
+		else
+			return
+		end
+		self.task_id = nil
+		self.task = nil
+		self.status = "idle"
+	end
+	
 	function worker:map_change()
 		if self.status == "supply" then
 			self.task:reset()

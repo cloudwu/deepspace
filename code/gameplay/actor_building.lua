@@ -5,48 +5,75 @@ return function (inst)
 	local blueprint = inst.blueprint
 	local schedule = inst.schedule
 	local container = inst.container
+	local machine = inst.machine
 
 	local building = {}
 	
-	function building:update()
-		if self.status == "invalid" then
-			return true
-		end
-		local not_complete = false
+	local function complete_current_job(self)
+		local complete = true
 		local projects = self.project
 		local live_projects = schedule.list()
 		for p in pairs(projects) do
 			if live_projects[p] then
-				not_complete = true
+				complete = false
 			else
 				projects[p] = nil
 			end
 		end
-		if not_complete then
+		return complete
+	end
+	
+	local function build(self)
+		self.status = "building"
+		local p = schedule.new {
+			type = "building",
+			x = self.x,
+			y = self.y,
+			blueprint = self.blueprint,
+		}
+		self.project[p] = true
+	end
+	
+	function building:update()
+		local status = self.status
+		if status == "invalid" then
+			return true
+		end
+		if not complete_current_job(self) then
 			return
 		end
-		container.del_pile(self.pile)
-		self.pile = nil
-		blueprint.del(self.id)
-		return true
+		if status == "blueprint" then
+			build(self)
+		else
+			assert(status == "building")
+			-- quit (todo: building works)
+			container.del_pile(self.pile)
+			self.pile = nil
+			blueprint.del(self.id)
+			return true
+		end
 	end
 	
 	function building:init()
 		local x = assert(self.x)
 		local y = assert(self.y)
+		local status = self.status
 		
-		if self.status == nil then
+		if status == nil then
 			self.status = "blueprint"
 			-- publish project
 			
 			if not scene.valid(x, y) then
-				self.status = "invalid"
+				self.status = "invalid"	-- release actor after current update
 				return
 			end
 
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
+
 			blueprint.add(building_id, self.id, x, y)
+			self.blueprint = machine.add_blueprint(building_id)
+			
 			local pile_id = container.add_pile()
 			self.pile = pile_id
 			
@@ -67,11 +94,11 @@ return function (inst)
 			end
 		else
 			-- load
-			assert(self.status == "blueprint")
+			assert (status == "blueprint" or status == "building")
 			local building_id = assert(self.building)
-			local building_data = assert(datasheet.building[building_id])
 			blueprint.add(building_id, self.id, x, y)
-			
+			machine.add_blueprint(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
+				
 			local project = {}
 			self.project = project
 			local live_projects = schedule.list()
@@ -84,8 +111,13 @@ return function (inst)
 	end
 	
 	function building:debug()
-		if self.pile then
-			blueprint.info(self.id, container.pile_info(self.pile))
+		local status = self.status
+		if status == "supply" then
+			if self.pile then
+				blueprint.info(self.id, container.pile_info(self.pile))
+			end
+		else	-- "building"
+			blueprint.info(self.id, machine.info(self.blueprint))
 		end
 	end
 	
@@ -98,6 +130,7 @@ return function (inst)
 			building = self.building,
 			pile = self.pile,
 			status = self.status,
+			blueprint = self.blueprint,
 		}
 		list[#list+1] = obj
 	end

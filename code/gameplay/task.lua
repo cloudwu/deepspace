@@ -52,7 +52,7 @@ function task_instance_meta:update()
 		return nil, err
 	end
 	
-	local step = func_list[ret] or error ("No state :" .. ret)
+	local step = func_list[ret] or error ("No state :" .. tostring(ret))
 	self._current = func_list[ret]
 	return self:update()
 end
