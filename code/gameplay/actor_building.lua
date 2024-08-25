@@ -112,7 +112,7 @@ return function (inst)
 	
 	function building:debug()
 		local status = self.status
-		if status == "supply" then
+		if status == "blueprint" then
 			if self.pile then
 				blueprint.info(self.id, container.pile_info(self.pile))
 			end
