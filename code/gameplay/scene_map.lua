@@ -59,6 +59,11 @@ return function (scene, inst)
 	end
 	
 	local path_func = {
+--		[true] = function (self, p, x, y)
+--			local r = path.path_near(self, p, x, y)
+--			print(path.debug(self, x, y, true))
+--			return r
+--		end,
 		[true] = path.path_near,
 		[false] = path.path,
 	}

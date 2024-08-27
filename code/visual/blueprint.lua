@@ -1,6 +1,7 @@
 local blueprint = {}
 
 local all = {}
+local info = {}
 
 function blueprint.add(arg)
 	local obj = { x = arg.x, y = arg.y }
@@ -16,12 +17,16 @@ function blueprint.del(arg)
 	local obj = all[arg.id] or error ("No blueprint " .. arg.id)
 	ant.remove(obj)
 	all[arg.id] = nil
+	info[arg.id] = nil
 end
 
 function blueprint.info(arg)
-	local obj = all[arg.id]
-	if obj then
-		ant.print(obj, arg.text)
+	info[arg.id] = arg.text
+end
+
+function blueprint.update()
+	for id, text in pairs(info) do
+		ant.print(all[id], text)
 	end
 end
 
@@ -30,6 +35,7 @@ function blueprint.clear()
 		ant.remove(obj)
 	end
 	all = {}
+	info = {}
 end
 
 return blueprint

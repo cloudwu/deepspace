@@ -62,13 +62,13 @@ pathmap_context_init(struct pathmap_context *C, struct pathmap *P, int target_la
 }
 
 static const int neighbor[8*3] = {
-	-1, -1, 7,	// NW
 	 0, -1, 5,	// N
-	 1, -1, 7,	// NE
 	-1,  0, 5,	// W
 	 1,  0,	5,	// E
-	-1,  1, 7,	// SW
 	 0,  1,	5,	// S
+	-1, -1, 7,	// NW
+	 1, -1, 7,	// NE
+	-1,  1, 7,	// SW
 	 1,  1,	7,	// SE
 };
 
@@ -198,7 +198,7 @@ find_next(struct scene *S, int layer, struct scene_coord *inout) {
 	slot_t *s = S->layer[layer] + (inout->y << S->shift_x) + inout->x;
 	int dist = *s;
 	struct scene_coord c = *inout;
-	nearest(S, layer, &c, dist);
+	dist = nearest(S, layer, &c, dist);
 	if (c.x == inout->x && c.y == inout->y)
 		return 0;
 	struct scene_coord last_noblock = c;
@@ -315,7 +315,17 @@ ldebug(lua_State *L) {
 	slot_t *s = P->cache.layer[index];
 
 	int i,j;
+	luaL_addstring(&b, "\n    ");
+	for (i=0;i<P->x;i++) {
+		char tmp[32];
+		snprintf(tmp, sizeof(tmp), "%4d", i);
+		luaL_addstring(&b, tmp);
+	}
+	luaL_addchar(&b, '\n');
 	for (i=0;i<P->y;i++) {
+		char tmp[32];
+		snprintf(tmp, sizeof(tmp), "%4d", i);
+		luaL_addstring(&b, tmp);
 		for (j=0;j<P->x;j++) {
 			char tmp[32];
 			snprintf(tmp, sizeof(tmp), "%4d", *s++);
@@ -343,6 +353,7 @@ get_pathmap(struct pathmap *P, int x, int y, int near) {
 		int n;
 		if (near) {
 			int i;
+			n = 0;
 			for (i=0;i<8;i++) {
 				temp[n].x = x + neighbor[i*3+0];
 				temp[n].y = y + neighbor[i*3+1];

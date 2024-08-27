@@ -101,6 +101,7 @@ function game.update()
 	end
 	vworker.update()
 	vbox.update()
+	vblueprint.update()
 	for _, msg in ipairs(gameplay.update()) do
 		local f = action[msg.what]
 		if f then
