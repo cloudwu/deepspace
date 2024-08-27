@@ -343,27 +343,40 @@ check_xy(lua_State *L, struct pathmap *P, int x, int y) {
 		luaL_error(L, "Invalid coord (%d,%d)", x, y);
 }
 
+static inline slot_t *
+get_block(struct pathmap *P, int x, int y) {
+	if (x < 0 || y < 0 || x >= P->x || y >= P->y)
+		return NULL;
+	return P->layer + (y << P->shift) + x;
+}
+
 static int
 get_pathmap(struct pathmap *P, int x, int y, int near) {
 	uint64_t key = hash_key(x, y, near);
 	int index = key % CACHE_SLOTS;
 	if (P->cache_index[index] != key) {
 		P->cache_index[index] = key;
+
+		slot_t * s = get_block(P, x, y);
+		int n = 0;
 		struct scene_coord temp[8];
-		int n;
-		if (near) {
-			int i;
-			n = 0;
-			for (i=0;i<8;i++) {
-				temp[n].x = x + neighbor[i*3+0];
-				temp[n].y = y + neighbor[i*3+1];
-				if (temp[n].x >=0 && temp[n].x < P->x && temp[n].y >=0 && temp[n].y < P->y)
-					++n;
+		if (s) {
+			if (near) {
+				int i;
+				n = 0;
+				for (i=0;i<8;i++) {
+					temp[n].x = x + neighbor[i*3+0];
+					temp[n].y = y + neighbor[i*3+1];
+					slot_t *ns = get_block(P, temp[n].x, temp[n].y);
+					if (ns) {
+						++n;
+					}
+				}
+			} else {
+				n = 1;
+				temp[0].x = x;
+				temp[0].y = y;
 			}
-		} else {
-			n = 1;
-			temp[0].x = x;
-			temp[0].y = y;
 		}
 		gen_pathmap(P, n, temp, index);
 	}
@@ -446,7 +459,7 @@ lpathmap_new(lua_State *L) {
 	P->cache.y = s->y;
 	P->cache.layer_n = CACHE_SLOTS;
 	int sz_map = s->y << s->shift_x;
-	slot_t *base = (slot_t *)&P->cache.layer[CACHE_SLOTS-1];
+	slot_t *base = (slot_t *)&P->cache.layer[CACHE_SLOTS];
 	int i;
 	for (i=0;i<CACHE_SLOTS;i++) {
 		P->cache.layer[i] = base;

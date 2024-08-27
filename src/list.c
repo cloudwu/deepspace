@@ -99,18 +99,21 @@ remove_last(struct list *T, int *head, size_t stride) {
 	}
 }
 
-void
+int
 list_remove_(struct list *T, int *head, void *ptr, size_t stride, size_t off) {
 	struct list_slot *p = (struct list_slot *)((char *)ptr - off);
 	int next = p->next;
 	if (next == LIST_EMPTY) {
 		remove_last(T, head, stride);
-		return;
+		return LIST_EMPTY;
 	}
 	struct list_slot *np = index_(T, next, stride);
 	memcpy(p, np, stride);
 	np->next = T->freelist;
 	T->freelist = next;
+	char * begin_ptr = (char *)T->s;
+	char * current_ptr = (char *)p;
+	return (current_ptr - begin_ptr) / stride;
 }
 
 void *

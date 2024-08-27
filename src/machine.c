@@ -86,6 +86,8 @@ opt_fixnumber(lua_State *L, int index, const char *key, int opt) {
 	return fv;
 }
 
+//#define list_each(T, t, iter) list_each_(t, iter, LIST_SIZEOF(T), LIST_OFFSETOF(T))
+
 static int
 lmachine_add(lua_State *L) {
 	struct machine_arena *M = getM(L);
@@ -294,7 +296,7 @@ static int
 lmachine_tick(lua_State *L) {
 	struct machine_arena *M = getM(L);
 	struct powergrid *P = luaL_checkudata(L, 2, POWERGRID_LUAKEY);
-
+	
 	int iter = M->working_list;
 	struct working *w = NULL;
 	while ((w = list_each(working, &M->working, &iter))) {
@@ -302,7 +304,7 @@ lmachine_tick(lua_State *L) {
 		int stop = machine_work(m, P);
 		if (stop) {
 			m->working = 0;
-			list_remove(working, &M->working, &M->working_list, w);
+			iter = list_remove(working, &M->working, &M->working_list, w);
 		}
 	}
 	return 0;
@@ -346,6 +348,7 @@ lmachine_reset(lua_State *L) {
 	if (m == NULL)
 		return luaL_error(L, "Invalid machine id %d", id);
 	m->worktick = 0;
+	printf("Machine reset\n");
 	set_working(L, M, m);
 	return 0;
 }

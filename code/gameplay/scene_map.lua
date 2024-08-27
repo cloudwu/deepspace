@@ -17,6 +17,7 @@ return function (scene, inst)
 		y = scene.y,
 		layer = #layer_name,
 	}
+	
 	local path = pathmap.new(data, layer.region)
 
 	local map_dirty = false
@@ -49,6 +50,7 @@ return function (scene, inst)
 			end
 		end
 		data:build(queue)
+--		print(data:debug(layer.region))
 		build_set = {}
 		map_dirty = false
 	end
@@ -69,6 +71,11 @@ return function (scene, inst)
 	}
 
 	local dist_func = {
+--		[true] = function (self, x1, y1, x2, y2)
+--			local r = path.dist_near(self, x1, y1, x2, y2)
+--			print(path.debug(self, x2, y2, true))
+--			return r
+--		end,
 		[true] = path.dist_near,
 		[false] = path.dist,
 	}

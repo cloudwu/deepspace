@@ -20,7 +20,7 @@ local draging_x, draging_y
 local draging_tx, draging_ty
 
 ant.gesture_listen("tap", function (ev)
-	if mode == "build" or mode == "remove" then
+	if mode == "build" or mode == "remove" or mode == "deck" then
 		local x, y = map_coord(ev.x, ev.y)
 		if x then
 			add_event(mode, true, x, y, x, y)
@@ -34,7 +34,7 @@ ant.gesture_listen("tap", function (ev)
 end)
 
 ant.gesture_listen("pan", function (ev)
-	if mode == "build" or mode == "remove" then
+	if mode == "build" or mode == "remove" or mode == "deck" then
 		if ev.state == "began" then
 			local x, y = map_coord(ev.x, ev.y)
 			if x then

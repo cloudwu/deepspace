@@ -6,6 +6,7 @@ local vworker = require "visual.worker"
 local vbox = require "visual.box"
 local vblueprint = require "visual.blueprint"
 local gameplay = require "gameplay"
+local datasheet = require "gameplay.datasheet"
 
 local game = {}
 
@@ -55,6 +56,8 @@ function action.blueprint(msg)
 	vblueprint[msg.action](msg)
 end
 
+local dummy_id <const> = datasheet.building_id.dummy
+
 function game.update()
 	camera.key_ctrl()
 	for _, mode, action, x1, y1, x2, y2 in hud.message() do
@@ -72,6 +75,13 @@ function game.update()
 			else
 				vfloor.draging("remove", x1, y1, x2, y2)
 			end
+		elseif mode == "deck" then
+			if action then
+				gameplay.action("build_floor", x1, y1, x2, y2)
+				vfloor.draging()
+			else
+				vfloor.draging("build", x1, y1, x2, y2)
+			end
 		elseif mode == "change_mode" then
 			vfloor.draging()
 		elseif mode == "worker" then
@@ -84,7 +94,7 @@ function game.update()
 			end
 		elseif mode == "blueprint" then
 			if action == "tap" then
-				gameplay.action("add_blueprint", x1, y1)
+				gameplay.action("add_blueprint", x1, y1, dummy_id)
 			end
 		end
 	end

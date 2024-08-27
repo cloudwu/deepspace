@@ -32,6 +32,7 @@ return function(scene)
 	
 	local change = {}
 	
+	-- todo: add only one
 	function floor.add(x1, y1, x2, y2)
 		x1, y1, x2, y2 = range(x1, y1, x2, y2)
 		for x = x1, x2 do
@@ -42,6 +43,22 @@ return function(scene)
 				end
 			end
 		end
+	end
+	
+	function floor.build(x1, y1, x2, y2)
+		local r = {}
+		local n = 1
+		x1, y1, x2, y2 = range(x1, y1, x2, y2)
+		for x = x1, x2 do
+			for y = y1, y2 do
+				if not scene.valid(x, y) then
+					r[n] = x
+					r[n+1] = y
+					n = n + 2
+				end
+			end
+		end
+		return r
 	end
 
 	function floor.remove(x1, y1, x2, y2)

@@ -1,16 +1,24 @@
+local datasheet = require "gameplay.datasheet"
+
 local blueprint = {}
 
 local all = {}
 local info = {}
 
 function blueprint.add(arg)
-	local obj = { x = arg.x, y = arg.y }
-	obj.s = 1
-	obj.z = 0.1
+	local b = datasheet.building[arg.building].blueprint
+	local obj = { x = arg.x, y = arg.y, s = b.s , z = b.z }
 	obj.material = {
-		color = 0x00ff00,
+		color = b.color,
 	}
-	all[arg.id] = ant.primitive("cube", obj)
+	if b.primitive then
+		ant.primitive(b.primitive, obj)
+	else
+		local name = "/asset/" .. b.prefab .. "/trans.prefab"
+		obj.material.color = 0x80808080
+		ant.prefab(name, obj)
+	end
+	all[arg.id] = obj
 end
 
 function blueprint.del(arg)

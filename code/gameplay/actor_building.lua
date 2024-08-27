@@ -30,7 +30,7 @@ return function (inst)
 			x = self.x,
 			y = self.y,
 			blueprint = self.blueprint,
-			near = true,
+			near = self.near,
 		}
 		self.project[p] = true
 	end
@@ -51,6 +51,8 @@ return function (inst)
 			container.del_pile(self.pile)
 			self.pile = nil
 			blueprint.del(self.id)
+			
+			scene.add_building(self.building, self.x, self.y)
 			return true
 		end
 	end
@@ -59,19 +61,19 @@ return function (inst)
 		local x = assert(self.x)
 		local y = assert(self.y)
 		local status = self.status
-		
+
 		if status == nil then
 			self.status = "blueprint"
 			-- publish project
 			
-			if not scene.valid(x, y) then
-				self.status = "invalid"	-- release actor after current update
-				return
-			end
+--			if not scene.valid(x, y) then
+--				self.status = "invalid"	-- release actor after current update
+--				return
+--			end
 
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
-
+			
 			blueprint.add(building_id, self.id, x, y)
 			self.blueprint = machine.add_blueprint(building_id)
 			
@@ -90,7 +92,7 @@ return function (inst)
 					count = mat.count,
 					owner = self.id,
 					pile = pile_id,
-					near = true,
+					near = self.near,
 				}
 				project[p] = true
 			end

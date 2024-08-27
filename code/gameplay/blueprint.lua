@@ -4,7 +4,7 @@ return function (scene)
 	local add_queue = {}
 	
 	function blueprint.add(building, id, x, y)
-		add_queue[#add_queue+1] = { what = "blueprint", action = "add", type = building, id = id, x = x, y = y }
+		add_queue[#add_queue+1] = { what = "blueprint", action = "add", building = building, id = id, x = x, y = y }
 		return id
 	end
 

@@ -40,7 +40,7 @@ list_each_(struct list *T, int *n, size_t stride, size_t off) {
 }
 
 #define list_remove(T, t, head, p) list_remove_(t, head, p, LIST_SIZEOF(T), LIST_OFFSETOF(T))
-void list_remove_(struct list *T, int *head, void *p, size_t stride, size_t off);
+int list_remove_(struct list *T, int *head, void *p, size_t stride, size_t off);
 
 #define list_clear(T, t, head) list_clear_(t, head, LIST_SIZEOF(T))
 void list_clear_(struct list *T, int head, size_t stride);

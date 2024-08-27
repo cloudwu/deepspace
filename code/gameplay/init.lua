@@ -91,6 +91,21 @@ function command:add_floor(x1, x2, y1, y2)
 	self.floor.add(x1, x2, y1, y2)
 end
 
+local deck_id = datasheet.building_id.deck
+
+function command:build_floor(x1, x2, y1, y2)
+	local r = self.floor.build(x1, x2, y1, y2)
+	for i = 1, #r, 2 do
+		self.actor.new {
+			name = "building",
+			building = deck_id,
+			x = r[i],
+			y = r[i+1],
+			near = true,
+		}
+	end
+end
+
 function command:remove_floor(x1, x2, y1, y2)
 	self.floor.remove(x1, x2, y1, y2)	
 end
@@ -105,6 +120,9 @@ end
 
 function command:add_box(x, y)
 	local id = self.box.add(x, y)
+	if not id then
+		return
+	end
 	local wood = datasheet.material_id.wood
 	local iron = datasheet.material_id.iron
 
@@ -112,12 +130,10 @@ function command:add_box(x, y)
 	self.box.put(id, iron, 100)
 end
 
-local building_id <const> = datasheet.building_id.dummy
-
-function command:add_blueprint(x, y)
+function command:add_blueprint(x, y, building)
 	self.actor.new {
 		name = "building",
-		building = building_id,
+		building = building,
 		x = x,
 		y = y,
 	}
