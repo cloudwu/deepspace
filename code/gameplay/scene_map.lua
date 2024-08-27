@@ -91,6 +91,9 @@ return function (scene, inst)
 	end
 	
 	function scene.nearest(x, y, storage_list)
+		if not storage_list then
+			return
+		end
 		if map_dirty then
 			rebuild()
 		end
