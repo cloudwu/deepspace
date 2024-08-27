@@ -368,7 +368,7 @@ get_pathmap(struct pathmap *P, int x, int y, int near) {
 					temp[n].x = x + neighbor[i*3+0];
 					temp[n].y = y + neighbor[i*3+1];
 					slot_t *ns = get_block(P, temp[n].x, temp[n].y);
-					if (ns) {
+					if (ns && *ns != *s) {
 						++n;
 					}
 				}
