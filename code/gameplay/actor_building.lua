@@ -65,7 +65,7 @@ return function (inst)
 		if status == nil then
 			self.status = "blueprint"
 			-- publish project
-			
+
 --			if not scene.valid(x, y) then
 --				self.status = "invalid"	-- release actor after current update
 --				return
@@ -135,6 +135,7 @@ return function (inst)
 			pile = self.pile,
 			status = self.status,
 			blueprint = self.blueprint,
+			near = self.near,
 		}
 		list[#list+1] = obj
 	end

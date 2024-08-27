@@ -71,11 +71,6 @@ return function (scene, inst)
 	}
 
 	local dist_func = {
---		[true] = function (self, x1, y1, x2, y2)
---			local r = path.dist_near(self, x1, y1, x2, y2)
---			print(path.debug(self, x2, y2, true))
---			return r
---		end,
 		[true] = path.dist_near,
 		[false] = path.dist,
 	}

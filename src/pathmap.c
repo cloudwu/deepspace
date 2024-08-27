@@ -414,12 +414,28 @@ ldist_(lua_State *L, int near) {
 	int x = luaL_checkinteger(L, 4);	// cache end point x
 	int y = luaL_checkinteger(L, 5);	// cache end point y
 	check_xy(L, P, x, y);
-	int index = get_pathmap(P, x, y, near);
+	int index = get_pathmap(P, x, y, 0);
 	struct scene_coord pos;
 	pos.x = luaL_checkinteger(L, 2);	// start point x
 	pos.y = luaL_checkinteger(L, 3);	// start point y
-	slot_t *s = get_dist(&P->cache, index, pos);
-	lua_pushinteger(L, s == NULL ? 0 : *s);
+	if (near) {
+		int i;
+		int min_dist = 0;
+		for (i=7;i>=0;i--) {
+			struct scene_coord t;
+			t.x = pos.x + neighbor[i*3+0];
+			t.y = pos.y + neighbor[i*3+1];
+			slot_t *s = get_dist(&P->cache, index, t);
+			if (s && *s) {
+				if (min_dist == 0 || *s < min_dist)
+					min_dist = *s;
+			}
+		}
+		lua_pushinteger(L, min_dist);
+	} else {
+		slot_t *s = get_dist(&P->cache, index, pos);
+		lua_pushinteger(L, s == NULL ? 0 : *s);
+	}
 	return 1;	
 }
 
