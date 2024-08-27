@@ -56,7 +56,8 @@ function M:walk_to_destination()
 	self.path = path
 	path.x = self.worker.x
 	path.y = self.worker.y
-	local dist = self.context.scene.path(path, self.task.x, self.task.y)
+	local task = self.task
+	local dist = self.context.scene.path(path, task.x, task.y, task.near)
 	if dist == 0 then
 		-- todo: drop material
 		return self.cancel, "NO_PATH"

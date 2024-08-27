@@ -41,7 +41,7 @@ return function (inst)
 		local best_id
 		for id, task in pairs(projects) do
 			if task.worker == nil then
-				local dist = scene.dist(x, y, task.x, task.y)
+				local dist = scene.dist(x, y, task.x, task.y, task.near)
 				if dist > 0	and (min_dist == nil or dist < min_dist) then
 					if check_task(self, task) then
 						min_dist = dist

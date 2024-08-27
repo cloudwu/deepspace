@@ -30,6 +30,7 @@ return function (inst)
 			x = self.x,
 			y = self.y,
 			blueprint = self.blueprint,
+			near = true,
 		}
 		self.project[p] = true
 	end
@@ -89,6 +90,7 @@ return function (inst)
 					count = mat.count,
 					owner = self.id,
 					pile = pile_id,
+					near = true,
 				}
 				project[p] = true
 			end

@@ -58,18 +58,29 @@ return function (scene, inst)
 		path:reset()
 	end
 	
-	function scene.path(t, x, y)
+	local path_func = {
+		[true] = path.path_near,
+		[false] = path.path,
+	}
+
+	local dist_func = {
+		[true] = path.dist_near,
+		[false] = path.dist,
+	}
+
+	function scene.path(t, x, y, near)
 		if map_dirty then
 			rebuild()
 		end
-		return path:path(t, x, y)
+		return path_func[near == true](path, t, x, y)
 	end
 	
-	function scene.dist(x1, y1, x2, y2)
+	function scene.dist(x1, y1, x2, y2, near)
 		if map_dirty then
 			rebuild()
 		end
-		return path:dist(x1, y1, x2, y2)
+		local f = dist_func[near == true]
+		return f(path, x1, y1, x2, y2)
 	end
 	
 	function scene.nearest(x, y, storage_list)
