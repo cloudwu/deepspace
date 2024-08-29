@@ -132,11 +132,6 @@ function command:add_box(x, y)
 	if not id then
 		return
 	end
-	local wood = datasheet.material_id.wood
-	local iron = datasheet.material_id.iron
-
-	self.box.put(id, wood, 200)
-	self.box.put(id, iron, 100)
 end
 
 function command:add_material(id, count, x, y)
