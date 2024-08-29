@@ -8,12 +8,7 @@ return function (env)
 		local material = self.task.material
 		local need = self.task.count
 		if stock then
-			if material ~= type then
-				-- todo: return inventory to storage
-				-- workaround : drop it
-				container.pile_take(self.worker.cargo, type, stock)
-				return self.cancel, "WRONG_CARGO"
-			end
+			assert(material == type)
 			if stock >= need then
 				-- enough stock
 				return "check_destination"
@@ -51,7 +46,7 @@ return function (env)
 		local container = self.context.container
 		local stock = container.storage_stock(self.storage_id, self.task.material)
 		if not stock then
-			return "find_material"			
+			return "find_material"
 		end
 		return move(self)
 	end
@@ -90,6 +85,6 @@ return function (env)
 		else
 			return self.cancel, "NO_CARGO"
 		end
-		return self.cont				
+		return self.cont
 	end
 end

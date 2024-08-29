@@ -4,7 +4,7 @@ local all = {}
 
 function box.new(arg)
 	local obj = arg.object
-	obj.s = 0.5
+	obj.s = 0.8
 	obj.z = 0.5
 	obj.r = 0
 	obj.material = {
@@ -22,7 +22,6 @@ end
 
 function box.update()
 	for obj in pairs(all) do
-		obj.r = obj.r + 1
 		if obj.text then
 			ant.print(obj, obj.text)
 		end

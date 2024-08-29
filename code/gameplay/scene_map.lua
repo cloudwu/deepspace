@@ -32,12 +32,12 @@ return function (scene, inst)
 			return true
 		end
 	end
-	
+
 	function scene.valid(x, y)
 		local v = data:get(x, y, layer.floor)
 		return v == 1
 	end
-	
+
 	local function build_region()
 		local queue = { layer = layer.region }
 		local n = 1
@@ -59,7 +59,7 @@ return function (scene, inst)
 		build_region()
 		path:reset()
 	end
-	
+
 	local path_func = {
 --		[true] = function (self, p, x, y)
 --			local r = path.path_near(self, p, x, y)
@@ -68,6 +68,11 @@ return function (scene, inst)
 --		end,
 		[true] = path.path_near,
 		[false] = path.path,
+--		[false] = function (self, p, x, y)
+--			local r = path.path(self, p, x, y)
+--			print(path.debug(self, x, y, false))
+--			return r
+--		end,
 	}
 
 	local dist_func = {
@@ -89,7 +94,7 @@ return function (scene, inst)
 		local f = dist_func[near == true]
 		return f(path, x1, y1, x2, y2)
 	end
-	
+
 	function scene.nearest(x, y, storage_list)
 		if not storage_list then
 			return
@@ -115,7 +120,7 @@ return function (scene, inst)
 			return min_index
 		end
 	end
-	
+
 	function scene.reachable(x, y, storage_list)
 		if map_dirty then
 			rebuild()
@@ -130,12 +135,15 @@ return function (scene, inst)
 			end
 		end
 	end
-	
+
 	function scene.export_floor()
 		return data:export(layer.floor)
 	end
-	
+
 	function scene.clear_floor()
 		data:clear(layer.floor)
+		data:clear(layer.region)
+		map_dirty = true
+		build_set = {}
 	end
 end

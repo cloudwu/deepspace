@@ -10,6 +10,7 @@ local schedule = require "gameplay.schedule"
 local loadsave = require "gameplay.loadsave"
 local machine = require "gameplay.machine"
 local powergrid = require "gameplay.powergrid"
+local loot = require "gameplay.loot"
 
 local savefile <const> = "savetest.ant"
 
@@ -40,6 +41,8 @@ local function new_game()
 	local inst = {}
 	local container = container()
 	inst.container = container
+	local loot = loot(inst)
+	inst.loot = loot
 	local powergrid = powergrid()
 	inst.powergrid = powergrid
 	local machine = machine(inst)
@@ -67,7 +70,13 @@ local function new_game()
 	function inst.update()
 		machine.update()
 		powergrid.update()
-		actor.update()
+		local actor_message = {}
+		actor.update(actor_message)
+		for _, m in ipairs(actor_message) do
+			local f = actor[m[1]]
+			f(table.unpack(m,2))
+		end
+		loot.update(message)
 		floor.update(message)
 		scene.update(message)
 		worker.update(message)
@@ -130,6 +139,16 @@ function command:add_box(x, y)
 	self.box.put(id, iron, 100)
 end
 
+function command:add_material(id, count, x, y)
+	-- todo:
+	self.actor.new {
+		name = "loot",
+		x = x,
+		y = y,
+		content = {	[id] = count },
+	}
+end
+
 function command:add_blueprint(x, y, building)
 	self.actor.new {
 		name = "building",
@@ -178,6 +197,7 @@ local savelist <const> = {
 	"schedule",
 	"worker",
 	"blueprint",
+	"loot",
 }
 
 local function call_savelist(func, ...)
@@ -195,7 +215,10 @@ end
 call_savelist(gen_clear_message)
 
 local function clear_(what, self)
-	self[what].clear()
+	local f = self[what].clear
+	if f then
+		f()
+	end
 end
 
 local function import_(what, self, data)

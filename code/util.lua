@@ -21,7 +21,7 @@ end
 function util.map_from_list(t, func)
 	local map = {}
 	for _, name in ipairs(t) do
-		map[name] = func(name)		
+		map[name] = func(name)
 	end
 	return map
 end

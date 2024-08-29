@@ -25,7 +25,7 @@ ant.gesture_listen("tap", function (ev)
 		if x then
 			add_event(mode, true, x, y, x, y)
 		end
-	elseif mode == "worker" or mode == "box" or mode == "blueprint" then
+	elseif mode == "worker" or mode == "box" or mode == "blueprint" or mode == "wood" or mode == "iron" then
 		local x, y = map_coord(ev.x, ev.y)
 		if x then
 			add_event(mode, "tap", x, y)

@@ -1,6 +1,5 @@
 return function (scene)
 	local blueprint = {}
-	local all = {}
 	local add_queue = {}
 	
 	function blueprint.add(building, id, x, y)
@@ -23,10 +22,6 @@ return function (scene)
 			message[n] = v
 			add_queue[k] = nil
 		end
-	end
-	
-	function blueprint.clear()
-		all = {}
 	end
 	
 	return blueprint

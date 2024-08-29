@@ -246,8 +246,9 @@ lcontainer_stock(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
-	if (c == NULL)
-		return luaL_error(L, "No id %d", id);
+	if (c == NULL) {
+		return 0;
+	}
 	if (lua_isnoneornil(L, 3)) {
 		struct storage_pile *p = list_object(storage_pile, &C->T, c->storage);
 		if (p) {
@@ -311,15 +312,17 @@ lcontainer_put(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
-	if (c == NULL)
-		return luaL_error(L, "No id %d", id);
+	if (c == NULL) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 	int type = luaL_checkinteger(L, 3);
 	int count = luaL_checkinteger(L, 4);
 	if (count <= 0) {
 		if (count < 0) {
 			return luaL_error(L, "Invalid count %d", count);
 		}
-		lua_pushinteger(L, count);
+		lua_pushinteger(L, 0);
 		return 1;
 	}
 	if (c->size > 0) {
@@ -329,8 +332,8 @@ lcontainer_put(lua_State *L) {
 	if (p == NULL) {
 		p = add_pile(L, 1, C, c);
 		p->type = type;
-	}
-	if (p->stock == 0) {
+		p->stock = count;
+	} else {
 		p->stock += count;
 	}
 	lua_pushinteger(L, count);
@@ -342,8 +345,10 @@ lcontainer_take(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
 	struct box *c = group_object(&C->G, id);
-	if (c == NULL)
-		return luaL_error(L, "No id %d", id);
+	if (c == NULL) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 	int type = luaL_checkinteger(L, 3);
 	int count = luaL_checkinteger(L, 4);
 	if (count <= 0) {
@@ -406,6 +411,31 @@ lcontainer_find(lua_State *L) {
 }
 
 static int
+lcontainer_list(lua_State *L) {
+	struct container * C = getC(L);
+	if (!lua_istable(L, 2)) {
+		lua_settop(L, 1);
+		lua_newtable(L);
+	}
+	struct box *iter = NULL;
+	int result_n = 0;
+	while ((iter = group_each(&C->G, iter))) {
+		if (iter->size > 0) {
+			unsigned int id = group_handle(&C->G, iter);
+			lua_pushinteger(L, id);
+			lua_seti(L, 2, ++result_n);
+		}
+	}
+	int size = lua_rawlen(L, 2);
+	int i;
+	for (i = result_n; i < size; i++) {
+		lua_pushnil(L);
+		lua_seti(L, 2, i+1);
+	}
+	return 1;
+}
+
+static int
 lcontainer_info(lua_State *L) {
 	struct container * C = getC(L);
 	int id = luaL_checkinteger(L, 2);
@@ -449,6 +479,7 @@ lcontainer_new(lua_State *L) {
 			{ "export", lcontainer_export },
 			{ "import", lcontainer_import },
 			{ "find", lcontainer_find },
+			{ "list", lcontainer_list },
 			{ "info", lcontainer_info },	// for debug
 			{ "__index", NULL },
 			{ NULL, NULL },

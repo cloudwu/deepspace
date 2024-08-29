@@ -4,6 +4,8 @@ local util = require "util"
 local task_temp = util.map_from_list({
 	"supply",
 	"building",
+	"trash",
+	"cleanup",
 }, function (name)
 	return task.define(require ("gameplay.task_" .. name))
 end)
@@ -23,6 +25,10 @@ return function (inst)
 	
 	function taskcheck:building(task)
 		-- always can do building (todo)
+		return true
+	end
+	
+	function taskcheck:cleanup(task)
 		return true
 	end
 	
@@ -57,13 +63,61 @@ return function (inst)
 	
 	local status = {}
 	
+	local function task_done(self)
+		self.task_id = nil
+		self.task = nil
+		self.status = "idle"
+	end
+	
 	function status:idle()
+		local stock, type = container.pile_stock(self.cargo)
+		if stock then
+			self.status = "trash"
+			return			
+		end
 		local task, min_dist = get_task(scene, self, schedule.list())
 		if task then
 			self.status = "wait_task"
 			-- todo: priority ~= 100 
 			schedule.request(task, self.id, 1000 - min_dist)
 		end
+	end
+	
+	function status:trash(command)
+		if not self.task then
+			self.task = task_temp.trash:instance {
+				context = inst,
+				worker = self,
+			}
+		end
+		if not self.task:update() then
+			local stock, type = container.pile_stock(self.cargo)
+			if stock then
+				container.pile_take(self.cargo, type, stock)
+				command[#command+1] = {
+					"new",
+					{
+						name = "loot",
+						x = self.x,
+						y = self.y,
+						content = { [type] = stock },
+					}
+				}
+			end
+			task_done(self)
+		end
+	end
+	
+	function status:cleanup()
+		local cont, err = self.task:update()
+		if err then
+			schedule.cancel(self.task_id, self.id)
+		elseif not cont then
+			schedule.complete(self.task_id, self.id)
+		else
+			return
+		end
+		task_done(self)
 	end
 	
 	function status:supply()
@@ -76,16 +130,14 @@ return function (inst)
 			if stock < task.count then
 				task.count = task.count - stock
 				-- renew task
-				schedule.cancel(self.task_id, self.id)								
+				schedule.cancel(self.task_id, self.id)
 			else
 				schedule.complete(self.task_id, self.id)
 			end
 		else
 			return
 		end
-		self.task_id = nil
-		self.task = nil
-		self.status = "idle"
+		task_done(self)
 	end
 	
 	function status:building()
@@ -97,13 +149,17 @@ return function (inst)
 		else
 			return
 		end
-		self.task_id = nil
-		self.task = nil
-		self.status = "idle"
+		task_done(self)
 	end
 	
+	local reset_status = {
+		supply = true,
+		trash = true,
+		cleanup = true,
+	}
+	
 	function worker:map_change()
-		if self.status == "supply" then
+		if reset_status[self.status] then
 			self.task:reset()
 		end
 	end
@@ -131,8 +187,9 @@ return function (inst)
 		self.status = "idle"
 	end
 	
-	function worker:update()
-		return status[self.status](self)
+	function worker:update(command)
+		-- todo: high priority task (hungry?)
+		return status[self.status](self, command)
 	end
 	
 	function worker:debug()

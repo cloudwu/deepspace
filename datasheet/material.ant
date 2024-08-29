@@ -2,7 +2,13 @@ material :
   iron :
     id : 1
     stack : 100
+    facade:
+      primitive : cube
+      color : 0xff0000
   wood :
     id : 2
     stack : 100
+    facade:
+      primitive : cube
+      color : 0x00ffff
     

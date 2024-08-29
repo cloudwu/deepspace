@@ -3,6 +3,7 @@ local camera = require "visual.camera"
 local vscene = require "visual.scene"
 local vfloor = require "visual.floor"
 local vworker = require "visual.worker"
+local vloot = require "visual.loot"
 local vbox = require "visual.box"
 local vblueprint = require "visual.blueprint"
 local gameplay = require "gameplay"
@@ -56,6 +57,10 @@ function action.blueprint(msg)
 	vblueprint[msg.action](msg)
 end
 
+function action.loot(msg)
+	vloot[msg.action](msg)
+end
+
 local dummy_id <const> = datasheet.building_id.dummy
 
 function game.update()
@@ -92,6 +97,12 @@ function game.update()
 			if action == "tap" then
 				gameplay.action("add_box", x1, y1)
 			end
+		elseif mode == "iron" or mode == "wood" then
+			if action == "tap" then
+				local id = assert(datasheet.material_id[mode])
+				-- todo: add count ~= 10
+				gameplay.action("add_material", id, 10, x1, y1)
+			end
 		elseif mode == "blueprint" then
 			if action == "tap" then
 				gameplay.action("add_blueprint", x1, y1, dummy_id)
@@ -111,6 +122,7 @@ function game.update()
 	end
 	vworker.update()
 	vbox.update()
+	vloot.update()
 	vblueprint.update()
 	for _, msg in ipairs(gameplay.update()) do
 		local f = action[msg.what]

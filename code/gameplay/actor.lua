@@ -8,6 +8,7 @@ return function (inst)
 	local actor_init = util.map_from_list({
 		"building",
 		"worker",
+		"loot",
 	}, function(name)
 		local meta = require ("gameplay.actor_" .. name) (inst)
 		meta.__index = meta
@@ -30,7 +31,7 @@ return function (inst)
 		return id
 	end
 
-	function actor.update()
+	function actor.update(message)
 		-- move new_set to actors
 		for id, obj in pairs(new_set) do
 			actors[id] = obj
@@ -39,7 +40,7 @@ return function (inst)
 		-- update all
 		local n = 0
 		for id , obj in pairs(actors) do
-			if obj:update() then
+			if obj:update(message) then
 				n = n + 1
 				delete_set[n] = id
 			end
