@@ -47,8 +47,7 @@ return function (env)
 	end
 	function env:moveto_storage()
 		local container = self.context.container
-		local stock = container.storage_stock(self.space)
-		if not stock then
+		if not container.storage_exist(self.space) then
 			-- disappear
 			return "find_space"
 		end

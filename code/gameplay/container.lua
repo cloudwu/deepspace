@@ -69,6 +69,10 @@ return function()
 		end
 	end
 
+	function container.storage_exist(id)
+		return pos[id] ~= nil
+	end
+
 	do
 		local find_result = {}
 		function container.find_storage(type)
