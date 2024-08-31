@@ -3,11 +3,12 @@ local datasheet = require "gameplay.datasheet"
 local blueprint = {}
 
 local all = {}
-local info = {}
 
 function blueprint.add(arg)
 	local b = datasheet.building[arg.building].blueprint
-	local obj = { x = arg.x, y = arg.y, s = b.s , z = b.z }
+	local obj = arg.object
+	obj.s = b.s
+	obj.z = b.z
 	obj.material = {
 		color = b.color,
 	}
@@ -25,16 +26,13 @@ function blueprint.del(arg)
 	local obj = all[arg.id] or error ("No blueprint " .. arg.id)
 	ant.remove(obj)
 	all[arg.id] = nil
-	info[arg.id] = nil
-end
-
-function blueprint.info(arg)
-	info[arg.id] = arg.text
 end
 
 function blueprint.update()
-	for id, text in pairs(info) do
-		ant.print(all[id], text)
+	for id, obj in pairs(all) do
+		if obj.text then
+			ant.print(obj, obj.text)
+		end
 	end
 end
 
@@ -43,7 +41,6 @@ function blueprint.clear()
 		ant.remove(obj)
 	end
 	all = {}
-	info = {}
 end
 
 return blueprint

@@ -4,7 +4,6 @@ local function set_storage(self, x, y, v)
 	local storage_id = v >> 32
 	local storage_x = (v >> 16) & 0xffff
 	local storage_y = v & 0xffff
-	print("STORAGE", storage_x, storage_y)
 	local path = {
 		x = x,
 		y = y,

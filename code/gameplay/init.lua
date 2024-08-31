@@ -1,10 +1,8 @@
 local scene = require "gameplay.scene"
 local floor = require "gameplay.floor"
-local worker = require "gameplay.worker"
 local container = require "gameplay.container"
 local box = require "gameplay.box"
 local actor = require "gameplay.actor"
-local blueprint = require "gameplay.blueprint"
 local datasheet = require "gameplay.datasheet"
 local schedule = require "gameplay.schedule"
 local loadsave = require "gameplay.loadsave"
@@ -50,15 +48,11 @@ local function new_game()
 	local scene = scene(inst)
 	inst.scene = scene
 	local floor = floor(scene)
-	local worker = worker(scene)
 	local box = box(inst)
-	local blueprint = blueprint(scene)
 	local schedule = schedule(scene)
 	
 	inst.floor = floor
-	inst.worker = worker
 	inst.box = box
-	inst.blueprint = blueprint
 	inst.schedule = schedule
 	
 	local actor = actor(inst)
@@ -71,13 +65,11 @@ local function new_game()
 	function inst.update()
 		machine.update()
 		powergrid.update()
-		actor.update()
+		actor.update(message)
 		loot.update(message)
 		floor.update(message)
 		scene.update(message)
-		worker.update(message)
 		box.update(message)
-		blueprint.update(message)
 		
 		assign_task(schedule, actor)
 		
@@ -131,13 +123,6 @@ function command:add_box(x, y)
 end
 
 function command:add_material(id, count, x, y)
-	-- todo:
---	self.actor.new {
---		name = "loot",
---		x = x,
---		y = y,
---		content = {	[id] = count },
---	}
 	self.container.add_loot(x, y, id, count)
 end
 
@@ -187,8 +172,6 @@ local savelist <const> = {
 	"floor",
 	"box",
 	"schedule",
-	"worker",
-	"blueprint",
 	"loot",
 }
 
@@ -198,13 +181,13 @@ local function call_savelist(func, ...)
 	end
 end
 
-local clear_message = {}
-
-local function gen_clear_message(what)
-	clear_message[#clear_message+1] = { what = what, action = "clear" }
-end
-
-call_savelist(gen_clear_message)
+local clear_message = {
+	{ what = "worker", action = "clear" },
+	{ what = "blueprint", action = "clear" },
+	{ what = "box", action = "clear" },
+	{ what = "floor", action = "clear" },
+	{ what = "loot", action = "clear" },
+}
 
 local function clear_(what, self)
 	local f = self[what].clear

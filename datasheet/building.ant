@@ -9,16 +9,19 @@ building :
       primitive : cube
       z : 0.1
       color : 0xff008000
+    type : machine
   storage :
     id : 2
 #    material :
 #      wood : 10
     size : 10
+    type : warehouse
     building_time : 100
   deck :
     id : 3
     material :
       iron : 20
+    type : construction
     building_time : 100
     blueprint:
       prefab : wall/floor.glb

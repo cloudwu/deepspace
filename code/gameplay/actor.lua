@@ -16,21 +16,28 @@ return function (inst)
 
 	local alloc_id = allocid()
 	local actors = {}
+	local actors_dtor = {}
 
 	local new_set = {}
 	local delete_set = {}
+	
+	local message = {}
 
 	function actor.new(init)
 		local id = alloc_id(init.id)
 		init.id = id
 		local meta = assert(actor_init[init.name])
 		local obj = setmetatable(init, meta)
-		obj:init()
+		local vmessage = obj:init()
+		if vmessage then
+			message[#message+1] = vmessage
+			actors_dtor[id] = vmessage.what
+		end
 		new_set[id] = obj
 		return id
 	end
 
-	function actor.update()
+	function actor.update(queue)
 		-- move new_set to actors
 		for id, obj in pairs(new_set) do
 			actors[id] = obj
@@ -46,8 +53,18 @@ return function (inst)
 		end
 		-- remove deleted actors
 		for i = 1, n do
-			actors[delete_set[i]] = nil
+			local id = delete_set[i]
+			actors[id] = nil
 			delete_set[i] = nil
+			local what = actors_dtor[id]
+			if what then
+				queue[#queue+1] = { what = what, action = "del", id = id }
+			end
+		end
+		
+		if #message > 0 then
+			table.move(message, 1, #message, #queue+1, queue)
+			message = {}
 		end
 	end
 

@@ -80,11 +80,8 @@ return function()
 	
 	container.find_loot = find_(loot, loot_pos)
 	
-	function container.add_storage(x, y, id)
-		if not id then
-			local bid = datasheet.building_id.storage
-			id = storage:add(datasheet.building[bid].size)
-		end
+	function container.add_storage(x, y, size)
+		local id = storage:add(datasheet.building[bid].size)
 		pos[id] = x << 16 | y
 		return id
 	end

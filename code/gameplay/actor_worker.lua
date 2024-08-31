@@ -196,7 +196,7 @@ return function (inst)
 	function worker:init()
 		if self.status == nil then
 			self.status = "idle"
-			self.object = inst.worker.add(self.id, self.x, self.y)
+			self.object = { x = self.x, y = self.y }
 			self.cargo = container.add_pile()
 		else
 			local x = self.x
@@ -205,11 +205,12 @@ return function (inst)
 			local wy = (y + 0.5) // 1 | 0
 			self.x = wx
 			self.y = wy
-			self.object = inst.worker.add(self.id, wx, wy, x, y)
+			self.object = { x = wx or x, y = wy or y }
 			if self.task_id then
 				assign_task(self, self.task_id, self.task)
 			end
 		end
+		return { what = "worker", action = "new", id = self.id, object = self.object }
 	end
 	
 	function worker:export(list)

@@ -2,7 +2,6 @@ local datasheet = require "gameplay.datasheet"
 
 return function (inst)
 	local scene = inst.scene
-	local blueprint = inst.blueprint
 	local schedule = inst.schedule
 	local container = inst.container
 	local machine = inst.machine
@@ -51,7 +50,6 @@ return function (inst)
 				container.del_pile(self.pile)
 				self.pile = nil
 			end
-			blueprint.del(self.id)
 			machine.del(self.blueprint)
 			scene.add_building(self.building, self.x, self.y)
 			return true
@@ -69,7 +67,6 @@ return function (inst)
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
 			
-			blueprint.add(building_id, self.id, x, y)
 			self.blueprint = machine.add(building_id)
 			
 			local project = {}
@@ -97,7 +94,6 @@ return function (inst)
 			-- load
 			assert (status == "blueprint" or status == "building")
 			local building_id = assert(self.building)
-			blueprint.add(building_id, self.id, x, y)
 			machine.add(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
 				
 			local project = {}
@@ -109,16 +105,20 @@ return function (inst)
 				end
 			end
 		end
+		
+		self.object = { x = x, y = y }
+		
+		return { what = "blueprint", action = "add", id = self.id, building = self.building, object = self.object }
 	end
 	
 	function building:debug()
 		local status = self.status
 		if status == "blueprint" then
 			if self.pile then
-				blueprint.info(self.id, container.pile_info(self.pile))
+				self.object.text = container.pile_info(self.pile)
 			end
 		else	-- "building"
-			blueprint.info(self.id, machine.info(self.blueprint))
+			self.object.text = machine.info(self.blueprint)
 		end
 	end
 	
