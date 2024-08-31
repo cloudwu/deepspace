@@ -104,7 +104,8 @@ return function (scene, inst)
 		if map_dirty then
 			rebuild()
 		end
-		local min_dist = max_dist, min_index
+		local min_dist = max_dist
+		local min_index
 		for i = 1, #storage_list do
 			local v = storage_list[i]
 			local id = v >> 32
@@ -121,6 +122,7 @@ return function (scene, inst)
 		if min_index then
 			return min_index, min_dist
 		end
+		return nil, max_dist
 	end
 
 	function scene.reachable(x, y, storage_list)

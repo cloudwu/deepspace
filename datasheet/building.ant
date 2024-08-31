@@ -8,15 +8,22 @@ building :
     blueprint:
       primitive : cube
       z : 0.1
-      color : 0xff008000
+      color : 0x80008000
     type : machine
   storage :
     id : 2
-#    material :
-#      wood : 10
+    material :
+      wood : 10
     size : 10
     type : warehouse
     building_time : 100
+    blueprint:
+      primitive : cube
+      z : 0.1
+      color : 0x80000080
+    facade:
+      color : 0x00ff
+      scale : 0.8
   deck :
     id : 3
     material :

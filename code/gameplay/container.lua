@@ -25,7 +25,25 @@ return function()
 		end
 	end
 	
-	function container.list_loot()
+	function list_(cdata, pos_index)
+		local find_result = {}
+		return function ()
+			cdata:list(find_result)
+			local n = #find_result
+			if n == 0 then
+				return
+			end
+			for i = 1, n do
+				local id = find_result[i]
+				find_result[i] = id << 32 | pos_index[id]
+			end
+			return find_result
+		end
+	end
+	
+	container.list_loot = list_(loot, loot_pos)
+	
+	function container.list_loot_pile()
 		local r = {}
 		for index, pile_id in pairs(loot_lookup) do
 			local c = loot:content(pile_id)
@@ -81,7 +99,7 @@ return function()
 	container.find_loot = find_(loot, loot_pos)
 	
 	function container.add_storage(x, y, size)
-		local id = storage:add(datasheet.building[bid].size)
+		local id = storage:add(size)
 		pos[id] = x << 16 | y
 		return id
 	end
@@ -98,21 +116,7 @@ return function()
 	end
 
 	container.find_storage = find_(storage, pos)
-	
-	do
-		local find_result = {}
-		function container.list_storage()
-			local n = storage:list(find_result)
-			if n == 0 then
-				return
-			end
-			for i = 1, #find_result do
-				local id = find_result[i]
-				find_result[i] = id << 32 | pos[id]
-			end
-			return find_result
-		end
-	end
+	container.list_storage = list_(storage, pos)
 
 	function container.add_pile()
 		return pile:add()

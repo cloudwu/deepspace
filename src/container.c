@@ -422,11 +422,9 @@ lcontainer_list(lua_State *L) {
 	struct box *iter = NULL;
 	int result_n = 0;
 	while ((iter = group_each(&C->G, iter))) {
-		if (iter->size > 0) {
-			unsigned int id = group_handle(&C->G, iter);
-			lua_pushinteger(L, id);
-			lua_seti(L, 2, ++result_n);
-		}
+		unsigned int id = group_handle(&C->G, iter);
+		lua_pushinteger(L, id);
+		lua_seti(L, 2, ++result_n);
 	}
 	int size = lua_rawlen(L, 2);
 	int i;

@@ -1,7 +1,6 @@
 local scene = require "gameplay.scene"
 local floor = require "gameplay.floor"
 local container = require "gameplay.container"
-local box = require "gameplay.box"
 local actor = require "gameplay.actor"
 local datasheet = require "gameplay.datasheet"
 local schedule = require "gameplay.schedule"
@@ -48,11 +47,9 @@ local function new_game()
 	local scene = scene(inst)
 	inst.scene = scene
 	local floor = floor(scene)
-	local box = box(inst)
 	local schedule = schedule(scene)
 	
 	inst.floor = floor
-	inst.box = box
 	inst.schedule = schedule
 	
 	local actor = actor(inst)
@@ -69,7 +66,6 @@ local function new_game()
 		loot.update(message)
 		floor.update(message)
 		scene.update(message)
-		box.update(message)
 		
 		assign_task(schedule, actor)
 		
@@ -115,11 +111,13 @@ function command:add_worker(x, y)
 	}
 end
 
-function command:add_box(x, y)
-	local id = self.box.add(x, y)
-	if not id then
-		return
-	end
+function command:add_warehouse(x, y)
+	self.actor.new {
+		name = "building",
+		building = datasheet.building_id.storage,
+		x = x,
+		y = y,
+	}
 end
 
 function command:add_material(id, count, x, y)
@@ -157,10 +155,6 @@ function command:publish(msg)
 	instance.actor.publish(msg)
 end
 
-function command:show_debug()
-	self.box.debug()
-end
-
 function gameplay.action(what, ... )
 	command[what](instance, ...)
 end
@@ -170,7 +164,6 @@ local savelist <const> = {
 	"powergrid",
 	"machine",
 	"floor",
-	"box",
 	"schedule",
 	"loot",
 }

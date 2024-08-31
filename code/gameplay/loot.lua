@@ -28,7 +28,7 @@ return function (inst)
 			end
 		end
 		local n = #message
-		local current = container.list_loot()
+		local current = container.list_loot_pile()
 		for index, count in pairs(current) do
 			local last_count = last[index]
 			if last_count ~= count then

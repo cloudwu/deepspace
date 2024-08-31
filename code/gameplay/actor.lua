@@ -8,6 +8,7 @@ return function (inst)
 	local actor_init = util.map_from_list({
 		"building",
 		"worker",
+		"warehouse",
 	}, function(name)
 		local meta = require ("gameplay.actor_" .. name) (inst)
 		meta.__index = meta

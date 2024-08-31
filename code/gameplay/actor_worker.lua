@@ -5,7 +5,7 @@ local task_temp = util.map_from_list({
 	"supply",
 	"building",
 	"trash",
-	"cleanup",
+	"loot",
 }, function (name)
 	return task.define(require ("gameplay.task_" .. name))
 end)
@@ -32,7 +32,7 @@ return function (inst)
 		return true
 	end
 	
-	function taskcheck:cleanup(task)
+	function taskcheck:loot(task)
 		return true
 	end
 	
@@ -105,7 +105,7 @@ return function (inst)
 		end
 	end
 	
-	function status:cleanup()
+	function status:loot()
 		local cont, err = self.task:update()
 		if err then
 			schedule.cancel(self.task_id, self.id)
@@ -152,7 +152,7 @@ return function (inst)
 	local reset_status = {
 		supply = true,
 		trash = true,
-		cleanup = true,
+		loot = true,
 	}
 	
 	function worker:map_change()

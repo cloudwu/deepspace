@@ -95,7 +95,7 @@ function game.update()
 			end
 		elseif mode == "box" then
 			if action == "tap" then
-				gameplay.action("add_box", x1, y1)
+				gameplay.action("add_warehouse", x1, y1)
 			end
 		elseif mode == "iron" or mode == "wood" then
 			if action == "tap" then
@@ -117,7 +117,6 @@ function game.update()
 	end
 	if show_debug then
 --		vfloor.debug()
-		gameplay.action "show_debug"
 		gameplay.action("publish", "debug")
 	end
 	vworker.update()
