@@ -6,7 +6,7 @@ return function (env)
 	function env:moveto_material()
 		local container = self.context.container
 		local task = self.task
-		if not container.pile_loot(task.x, task.y) then
+		if container.empty_loot(task.x, task.y) then
 			return self.cancel, "NO_PILE"
 		end
 		return worker_move.move(self)
@@ -14,12 +14,14 @@ return function (env)
 	function env:pickup()
 		local container = self.context.container
 		local task = self.task
-		local pile = container.pile_loot(task.x, task.y)
+		local pile = container.get_loot(task.x, task.y)
 		if pile then
 			-- todo: try all types in the pile
-			local count, type = container.pile_stock(pile)
-			container.pile_take(pile, type, count)
-			container.pile_put(self.worker.cargo, type, count)
+			local count, type = container.check_loot(pile)
+			if count then
+				container.take_loot(pile, type, count)
+				container.pile_put(self.worker.cargo, type, count)
+			end
 		end
 		return self.cont
 	end

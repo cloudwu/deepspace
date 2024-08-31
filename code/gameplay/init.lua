@@ -62,6 +62,7 @@ local function new_game()
 	inst.schedule = schedule
 	
 	local actor = actor(inst)
+	inst.actor = actor
 
 	function inst.game_start()
 		new_message { what = "scene", action = "new", x = scene.x, y = scene.y }
@@ -70,12 +71,7 @@ local function new_game()
 	function inst.update()
 		machine.update()
 		powergrid.update()
-		local actor_message = {}
-		actor.update(actor_message)
-		for _, m in ipairs(actor_message) do
-			local f = actor[m[1]]
-			f(table.unpack(m,2))
-		end
+		actor.update()
 		loot.update(message)
 		floor.update(message)
 		scene.update(message)
@@ -136,12 +132,13 @@ end
 
 function command:add_material(id, count, x, y)
 	-- todo:
-	self.actor.new {
-		name = "loot",
-		x = x,
-		y = y,
-		content = {	[id] = count },
-	}
+--	self.actor.new {
+--		name = "loot",
+--		x = x,
+--		y = y,
+--		content = {	[id] = count },
+--	}
+	self.container.add_loot(x, y, id, count)
 end
 
 function command:add_blueprint(x, y, building)

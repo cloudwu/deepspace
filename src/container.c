@@ -358,8 +358,10 @@ lcontainer_take(lua_State *L) {
 		return 0;
 	}
 	struct storage_pile *p = find_pile(C, c, type);
-	if (p == NULL)
-		return luaL_error(L, "No type %d in %d", type, id);
+	if (p == NULL) {
+		lua_pushinteger(L, 0);
+		return 1;
+	}
 	if (p->stock < count) {
 		count = p->stock;
 	}

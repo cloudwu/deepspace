@@ -23,10 +23,6 @@ return function (inst)
 		container.storage_put(id, what, count)
 	end
 	
-	function box.debug_text(id, text)
-		all[id].text = text
-	end
-	
 	function box.clear()
 		all = {}
 	end

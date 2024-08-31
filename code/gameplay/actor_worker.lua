@@ -20,6 +20,10 @@ return function (inst)
 	function taskcheck:supply(task)
 		local storage_list = container.find_storage(task.material)
 		-- check material pos
+		if storage_list and scene.reachable(self.x, self.y, storage_list) then
+			return true
+		end
+		local storage_list = container.find_loot(task.material)
 		return storage_list and scene.reachable(self.x, self.y, storage_list)
 	end
 	
@@ -83,7 +87,7 @@ return function (inst)
 		end
 	end
 	
-	function status:trash(command)
+	function status:trash()
 		if not self.task then
 			self.task = task_temp.trash:instance {
 				context = inst,
@@ -93,16 +97,9 @@ return function (inst)
 		if not self.task:update() then
 			local stock, type = container.pile_stock(self.cargo)
 			if stock then
+				-- drop cargo
 				container.pile_take(self.cargo, type, stock)
-				command[#command+1] = {
-					"new",
-					{
-						name = "loot",
-						x = self.x,
-						y = self.y,
-						content = { [type] = stock },
-					}
-				}
+				loot.drop(self.x, self.y, type, stock)
 			end
 			task_done(self)
 		end
@@ -187,9 +184,9 @@ return function (inst)
 		self.status = "idle"
 	end
 	
-	function worker:update(command)
+	function worker:update()
 		-- todo: high priority task (hungry?)
-		return status[self.status](self, command)
+		return status[self.status](self)
 	end
 	
 	function worker:debug()

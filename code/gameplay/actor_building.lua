@@ -45,9 +45,8 @@ return function (inst)
 		end
 		if status == "blueprint" then
 			build(self)
-		else
-			assert(status == "building")
-			-- quit (todo: building works)
+		elseif status == "building" then
+			-- complete building task
 			container.del_pile(self.pile)
 			self.pile = nil
 			blueprint.del(self.id)
@@ -65,12 +64,6 @@ return function (inst)
 		if status == nil then
 			self.status = "blueprint"
 			-- publish project
-
---			if not scene.valid(x, y) then
---				self.status = "invalid"	-- release actor after current update
---				return
---			end
-
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
 			
@@ -107,7 +100,7 @@ return function (inst)
 			self.project = project
 			local live_projects = schedule.list()
 			for id, p in pairs(live_projects) do
-				if p.owner == self.id then
+				if p.owner == self.id or p.blueprint == self.blueprint then
 					project[id] = true
 				end
 			end
