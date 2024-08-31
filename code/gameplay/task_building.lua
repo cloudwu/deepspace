@@ -8,14 +8,14 @@ return function (env)
 		local machine = self.context.machine
 		local blueprint = self.task.blueprint
 		-- todo: worker have different productivity (not 100%)
-		machine.start_blueprint(blueprint, 1)
+		machine.start(blueprint, 1)
 		return self.cont
 	end
 	function env:building()
 		local machine = self.context.machine
 		local blueprint = self.task.blueprint
 		-- todo: work Interrupted  (Hungry?)
-		if machine.finish_blueprint(blueprint) then
+		if machine.finish(blueprint) then
 			return self.cont
 		else
 			return self.yield

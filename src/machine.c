@@ -301,10 +301,15 @@ lmachine_tick(lua_State *L) {
 	struct working *w = NULL;
 	while ((w = list_each(working, &M->working, &iter))) {
 		struct machine *m = (struct machine *)group_object(&M->M, w->id);
-		int stop = machine_work(m, P);
-		if (stop) {
-			m->working = 0;
+		if (m == NULL) {
+			// machine delete
 			iter = list_remove(working, &M->working, &M->working_list, w);
+		} else {
+			int stop = machine_work(m, P);
+			if (stop) {
+				m->working = 0;
+				iter = list_remove(working, &M->working, &M->working_list, w);
+			}
 		}
 	}
 	return 0;

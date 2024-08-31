@@ -51,7 +51,7 @@ return function (inst)
 			container.del_pile(self.pile)
 			self.pile = nil
 			blueprint.del(self.id)
-			
+			machine.del(self.blueprint)
 			scene.add_building(self.building, self.x, self.y)
 			return true
 		end
@@ -75,7 +75,7 @@ return function (inst)
 			local building_data = assert(datasheet.building[building_id])
 			
 			blueprint.add(building_id, self.id, x, y)
-			self.blueprint = machine.add_blueprint(building_id)
+			self.blueprint = machine.add(building_id)
 			
 			local pile_id = container.add_pile()
 			self.pile = pile_id
@@ -101,7 +101,7 @@ return function (inst)
 			assert (status == "blueprint" or status == "building")
 			local building_id = assert(self.building)
 			blueprint.add(building_id, self.id, x, y)
-			machine.add_blueprint(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
+			machine.add(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
 				
 			local project = {}
 			self.project = project

@@ -4,21 +4,23 @@ local datasheet = require "gameplay.datasheet"
 return function(inst)
 	local powergrid = inst.powergrid._data
 	local data = C.new()
-	local obj = {}
 	local machine = {}
 
-	function machine.add_blueprint(typeid, id)
+	function machine.add(typeid, id)
 		local id = id or data:add()
-		obj[id] = { type = "blueprint", id = typeid }
 		data:set_recipe(id, datasheet.blueprint[typeid])
 		return id
 	end
 	
-	function machine.start_blueprint(id, productivity)
+	function machine.del(id)
+		data:remove(id)
+	end
+	
+	function machine.start(id, productivity)
 		data:set_productivity(id, productivity)
 	end
 	
-	function machine.finish_blueprint(id)
+	function machine.finish(id)
 		return data:status(id) == "finish"
 	end
 	
@@ -50,7 +52,6 @@ return function(inst)
 	
 	function machine.clear()
 		data:import()
-		obj = {}
 	end
 	
 	return machine

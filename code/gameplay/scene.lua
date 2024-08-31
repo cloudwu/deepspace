@@ -8,7 +8,7 @@ return function(inst)
 	scene_map(scene, inst)
 	
 	function scene.add_building(building_id, x, y)
-		-- todo:
+		-- todo: other building
 --		print("BUILD", building, x, y)
 		if building_id == deck_id then
 			inst.floor.add(x,y,x,y)
