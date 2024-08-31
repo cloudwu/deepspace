@@ -4,6 +4,7 @@ local function set_storage(self, x, y, v)
 	local storage_id = v >> 32
 	local storage_x = (v >> 16) & 0xffff
 	local storage_y = v & 0xffff
+	print("STORAGE", storage_x, storage_y)
 	local path = {
 		x = x,
 		y = y,
@@ -15,7 +16,6 @@ local function set_storage(self, x, y, v)
 	self.to_x = obj.x
 	self.to_y = obj.y
 	self.storage_id = storage_id
-	return self.cont
 end
 
 return function (env)
@@ -32,17 +32,33 @@ return function (env)
 				return "check_destination"
 			end
 		end
-		local storage_list = container.find_storage(material)
 		local x = self.worker.x
 		local y = self.worker.y
-		local near = self.context.scene.nearest(x, y, storage_list)
-		if not near then
-			return "find_loot"
+		local storage_list = container.find_storage(material)
+		local loot_list = container.find_loot(material)
+
+		local near_storage, dist_storage = self.context.scene.nearest(x, y, storage_list)
+		local near_loot, dist_loot = self.context.scene.nearest(x, y, loot_list)
+		
+		if not near_storage and not near_loot then
+			if stock then
+				return "check_destination"
+			else
+				return self.cancel, "NO_CARGO"
+			end
 		end
-		local v = storage_list[near]
-		return set_storage(self, x, y, v)
+		
+		if dist_storage < dist_loot then
+			local v = storage_list[near_storage]
+			set_storage(self, x, y, v)
+			return "moveto_storage"
+		else
+			local v = loot_list[near_loot]
+			set_storage(self, x, y, v)
+			return "moveto_loot"
+		end
 	end
-	function env:moveto_material()
+	function env:moveto_storage()
 		local container = self.context.container
 		local stock = container.storage_stock(self.storage_id, self.task.material)
 		if not stock then
@@ -50,7 +66,7 @@ return function (env)
 		end
 		return move(self)
 	end
-	function env:take_material()
+	function env:take_storage()
 		local container = self.context.container
 		local stock, type = container.pile_stock(self.worker.cargo)
 		local material = self.task.material
@@ -58,7 +74,7 @@ return function (env)
 		if stock then
 			assert(type == material)
 			if stock >= need then
-				return self.cont
+				return "check_destination"
 			end
 			need = need - stock
 		end
@@ -68,32 +84,6 @@ return function (env)
 			return "find_material"
 		end
 		return "check_destination"
-	end
-	function env:find_loot()
-		local container = self.context.container
-		local stock, type = container.pile_stock(self.worker.cargo)
-		local material = self.task.material
-		local need = self.task.count
-		if stock then
-			assert(material == type)
-			if stock >= need then
-				-- enough stock
-				return "check_destination"
-			end
-		end
-		local storage_list = container.find_loot(material)
-		local x = self.worker.x
-		local y = self.worker.y
-		local near = self.context.scene.nearest(x, y, storage_list)
-		if not near then
-			if stock then
-				-- have part of material
-				return "check_destination"
-			end
-			return self.cancel, "NO_CARGO"
-		end
-		local v = storage_list[near]
-		return set_storage(self, x, y, v)
 	end
 	function env:moveto_loot()
 		local container = self.context.container
@@ -111,7 +101,7 @@ return function (env)
 		if stock then
 			assert(type == material)
 			if stock >= need then
-				return self.cont
+				return "check_destination"
 			end
 			need = need - stock
 		end

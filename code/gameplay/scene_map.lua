@@ -94,15 +94,17 @@ return function (scene, inst)
 		local f = dist_func[near == true]
 		return f(path, x1, y1, x2, y2)
 	end
+	
+	local max_dist = math.huge
 
 	function scene.nearest(x, y, storage_list)
 		if not storage_list then
-			return
+			return nil, max_dist
 		end
 		if map_dirty then
 			rebuild()
 		end
-		local min_dist, min_index
+		local min_dist = max_dist, min_index
 		for i = 1, #storage_list do
 			local v = storage_list[i]
 			local id = v >> 32
@@ -110,14 +112,14 @@ return function (scene, inst)
 			local sy = v & 0xffff
 			local dist = path:dist(sx, sy, x, y)
 			if dist > 0 then
-				if min_dist == nil or dist < min_dist then
+				if dist < min_dist then
 					min_dist = dist
 					min_index = i
 				end
 			end
 		end
 		if min_index then
-			return min_index
+			return min_index, min_dist
 		end
 	end
 

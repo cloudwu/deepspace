@@ -72,7 +72,9 @@ local function arrange_buildings(building, mat)
 		local id = v.id
 		building_idmap[name] = id
 		v.name = name
-		v.material = material_id(v.material, mat)
+		if v.material then
+			v.material = material_id(v.material, mat)
+		end
 		idlist[id] = v
 	end
 	return idlist

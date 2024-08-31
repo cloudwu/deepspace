@@ -11,8 +11,8 @@ building :
       color : 0xff008000
   storage :
     id : 2
-    material :
-      wood : 10
+#    material :
+#      wood : 10
     size : 10
     building_time : 100
   deck :

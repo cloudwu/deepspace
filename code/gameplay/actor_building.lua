@@ -47,8 +47,10 @@ return function (inst)
 			build(self)
 		elseif status == "building" then
 			-- complete building task
-			container.del_pile(self.pile)
-			self.pile = nil
+			if self.pile then
+				container.del_pile(self.pile)
+				self.pile = nil
+			end
 			blueprint.del(self.id)
 			machine.del(self.blueprint)
 			scene.add_building(self.building, self.x, self.y)
@@ -70,24 +72,26 @@ return function (inst)
 			blueprint.add(building_id, self.id, x, y)
 			self.blueprint = machine.add(building_id)
 			
-			local pile_id = container.add_pile()
-			self.pile = pile_id
-			
 			local project = {}
 			self.project = project
 			
-			for _, mat in ipairs(building_data.material) do
-				local p = schedule.new {
-					type = "supply",
-					x = x,
-					y = y,
-					material = mat.id,
-					count = mat.count,
-					owner = self.id,
-					pile = pile_id,
-					near = self.near,
-				}
-				project[p] = true
+			if building_data.material then
+				local pile_id = container.add_pile()
+				self.pile = pile_id
+
+				for _, mat in ipairs(building_data.material) do
+					local p = schedule.new {
+						type = "supply",
+						x = x,
+						y = y,
+						material = mat.id,
+						count = mat.count,
+						owner = self.id,
+						pile = pile_id,
+						near = self.near,
+					}
+					project[p] = true
+				end
 			end
 		else
 			-- load
