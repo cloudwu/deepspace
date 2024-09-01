@@ -20,8 +20,12 @@ return function(inst)
 	end
 
 	function build.machine(id, x, y)
-		-- todo	
-		print("BUILD MACHINE", id, x, y)
+		inst.actor.new {
+			name = "machine",
+			building = id,
+			x = x,
+			y = y,
+		}
 	end
 
 	local scene = {}

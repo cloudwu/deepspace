@@ -6,6 +6,8 @@ local task_temp = util.map_from_list({
 	"building",
 	"trash",
 	"loot",
+	"operate",
+	"deliver",
 }, function (name)
 	return task.define(require ("gameplay.task_" .. name))
 end)
@@ -33,6 +35,14 @@ return function (inst)
 	end
 	
 	function taskcheck:loot(task)
+		return true
+	end
+	
+	function taskcheck:operate(task)
+		return true
+	end
+	
+	function taskcheck:deliver(task)
 		return true
 	end
 	
@@ -105,7 +115,7 @@ return function (inst)
 		end
 	end
 	
-	function status:loot()
+	function status:operate()
 		local cont, err = self.task:update()
 		if err then
 			schedule.cancel(self.task_id, self.id)
@@ -116,6 +126,10 @@ return function (inst)
 		end
 		task_done(self)
 	end
+	
+	status.loot = status.operate	
+	status.building = status.operate
+	status.deliver = status.operate
 	
 	function status:supply()
 		local cont, err = self.task:update()
@@ -137,22 +151,12 @@ return function (inst)
 		task_done(self)
 	end
 	
-	function status:building()
-		local cont, err = self.task:update()
-		if err then
-			schedule.cancel(self.task_id, self.id)
-		elseif not cont then
-			schedule.complete(self.task_id, self.id)
-		else
-			return
-		end
-		task_done(self)
-	end
-	
 	local reset_status = {
 		supply = true,
 		trash = true,
 		loot = true,
+		deliver = true,
+		operate = true,
 	}
 	
 	function worker:map_change()

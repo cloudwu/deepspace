@@ -2,13 +2,12 @@ recipe :
 	mining :
 		id : 1
 		output:
-			ore : 100
-		time: 200
+			ore : 10
+		worktime: 100
 	ore_sorting :
 		id : 2
 	    input :
 			ore : 1
 		output :
-			wood : 100
-			iron : 50
-		time: 100
+			iron : 10
+		worktime: 1000

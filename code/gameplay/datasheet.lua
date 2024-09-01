@@ -84,8 +84,8 @@ local function arrange_buildings(building, mat, recipe)
 	return idlist
 end
 
-local function building_time(buildings)
-	local data = {}
+local function building_time(buildings, data)
+	data = data or {}
 	for k,v in pairs(buildings) do
 		data[k] = { worktime = v.building_time }
 	end
@@ -97,11 +97,9 @@ local function arrange_pair(p, idmap)
 		return
 	end
 	local r = {}
-	local n = 1
 	for k,v in pairs(p) do
 		k = idmap[k] or ("Unknown " .. tostring(k))
-		r[n] = { k, v }
-		n = n + 1
+		r[k] = v
 	end
 	return r
 end
@@ -116,6 +114,7 @@ local function arrange_recipe(recipe, idmap)
 		r[v.id] = v
 		recipe_idmap[k] = v.id
 	end
+	return r
 end
 
 data.material = arrange_material(data.material)

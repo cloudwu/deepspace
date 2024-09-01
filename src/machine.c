@@ -33,7 +33,6 @@ struct machine_arena {
 #define MACHINE_COUNT 2
 
 // set productivity to turn on/off the machine
-// init machine with recipe { .id, .power .worktime .input, .output }
 
 static struct machine_arena *
 getM(lua_State *L) {
@@ -46,21 +45,6 @@ getM(lua_State *L) {
 static lua_Integer
 get_key(lua_State *L, int index, const char *key) {
 	lua_getfield(L, index, key);
-	int isnum = 0;
-	lua_Integer r = lua_tointegerx(L, -1, &isnum);
-	if (!isnum) {
-		return luaL_error(L, ".%s is not an integer", key);
-	}
-	lua_pop(L, 1);
-	return r;
-}
-
-static int
-opt_key(lua_State *L, int index, const char *key, int opt) {
-	if (lua_getfield(L, index, key) == LUA_TNIL) {
-		lua_pop(L, 1);
-		return opt;
-	}
 	int isnum = 0;
 	lua_Integer r = lua_tointegerx(L, -1, &isnum);
 	if (!isnum) {
@@ -86,8 +70,6 @@ opt_fixnumber(lua_State *L, int index, const char *key, int opt) {
 	return fv;
 }
 
-//#define list_each(T, t, iter) list_each_(t, iter, LIST_SIZEOF(T), LIST_OFFSETOF(T))
-
 static int
 lmachine_add(lua_State *L) {
 	struct machine_arena *M = getM(L);
@@ -106,6 +88,24 @@ lmachine_add(lua_State *L) {
 }
 
 static int
+lmachine_init(lua_State *L) {
+	struct machine_arena *M = getM(L);
+	int id = luaL_checkinteger(L, 2);
+	luaL_checktype(L, 3, LUA_TTABLE);	// init table
+	struct machine *m = (struct machine *)group_object(&M->M, id);
+	if (m == NULL)
+		return luaL_error(L, "Invalid machine id %d", id);
+	m->power = get_key(L, 3, "power");
+	m->appliance = get_key(L, 3, "appliance");
+	struct powergrid *P = luaL_checkudata(L, 4, POWERGRID_LUAKEY);
+	struct capacitance *c = powergrid_get_level(P, m->appliance);
+	if (c == NULL)
+		return luaL_error(L, "No appliance id %d", m->appliance);
+	c->level = m->power;
+	return 0;
+}
+
+static int
 lset_recipe(lua_State *L) {
 	struct machine_arena *M = getM(L);
 	int id = luaL_checkinteger(L, 2);
@@ -113,18 +113,6 @@ lset_recipe(lua_State *L) {
 	struct machine *m = (struct machine *)group_object(&M->M, id);
 	if (m == NULL)
 		return luaL_error(L, "Invalid machine id %d", id);
-	m->power = opt_key(L, 3, "power", 0);
-	if (m->appliance != 0 && m->power == 0)
-		return luaL_error(L, "appliance need power");
-	if (m->power > 0) {
-		struct powergrid *P = luaL_checkudata(L, 4, POWERGRID_LUAKEY);
-		if (m->appliance == 0)
-			return luaL_error(L, "No appliance but power = %d", m->power);
-		struct capacitance *c = powergrid_get_level(P, m->appliance);
-		if (c == NULL)
-			return luaL_error(L, "No appliance id %d", m->appliance);
-		c->level = m->power;		
-	}
 	m->worktime = get_key(L, 3, "worktime");
 	m->productivity = opt_fixnumber(L, 3, "productivity", 0);
 	return 0;
@@ -187,10 +175,6 @@ lmachine_export(lua_State *L) {
 	while ((obj = group_each(&M->M, obj))) {
 		int h = group_handle(&M->M, obj);
 		export_table_with_id(L, h);
-		if (obj->appliance != 0) {
-			lua_pushinteger(L, obj->appliance);
-			lua_setfield(L, -2, "appliance");
-		}
 		lua_pushinteger(L, obj->worktick);
 		lua_setfield(L, -2, "worktick");
 		lua_rawseti(L, -2, from_index++);
@@ -207,9 +191,9 @@ import_machine(lua_State *L, struct machine_arena *M, int data_index) {
 	struct working *w = list_add(working, &M->working, &M->working_list, MACHINE_WORKING);
 	w->id = h;
 	m->working = 1;
-	m->appliance = opt_key(L, data_index, "appliance", 0);
 	m->worktick = get_key(L, data_index, "worktick");
 	m->productivity = 0;
+	m->appliance = 0;
 	m->power = 0;
 	m->worktime = 0;
 }
@@ -353,7 +337,6 @@ lmachine_reset(lua_State *L) {
 	if (m == NULL)
 		return luaL_error(L, "Invalid machine id %d", id);
 	m->worktick = 0;
-	printf("Machine reset\n");
 	set_working(L, M, m);
 	return 0;
 }
@@ -368,6 +351,7 @@ lmachine_new(lua_State *L) {
 		luaL_Reg l[] = {
 			{ "add", lmachine_add },
 			{ "remove", lmachine_remove },
+			{ "init", lmachine_init },
 			{ "set_recipe", lset_recipe },
 			{ "set_productivity", lset_productivity },
 			{ "status", lmachine_status },

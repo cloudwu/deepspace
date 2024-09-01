@@ -9,6 +9,7 @@ return function (inst)
 		"building",
 		"worker",
 		"warehouse",
+		"machine",
 	}, function(name)
 		local meta = require ("gameplay.actor_" .. name) (inst)
 		meta.__index = meta

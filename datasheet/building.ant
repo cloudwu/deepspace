@@ -46,3 +46,18 @@ building :
       scale : 0.8
 	recipe: mining
     type : machine
+	operator : true
+  furnace :
+    id : 5
+	material :
+	  iron : 50
+    building_time : 100
+    blueprint:
+      primitive : cube
+      z : 0.1
+      color : 0x80800000
+    facade:
+      color : 0xff0000
+      scale : 0.8
+	recipe: ore_sorting
+    type : machine

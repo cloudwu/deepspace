@@ -71,7 +71,7 @@ return function (inst)
 			local building_id = assert(self.building)
 			local building_data = assert(datasheet.building[building_id])
 			
-			self.blueprint = machine.add(building_id)
+			self.blueprint = machine.add_blueprint(building_id)
 			
 			local project = {}
 			self.project = project
@@ -98,7 +98,7 @@ return function (inst)
 			-- load
 			assert (status == "blueprint" or status == "building")
 			local building_id = assert(self.building)
-			machine.add(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
+			machine.add_blueprint(building_id, self.blueprint)	-- bind buidling_id to self.blueprint
 				
 			local project = {}
 			self.project = project

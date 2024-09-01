@@ -61,8 +61,6 @@ function action.loot(msg)
 	vloot[msg.action](msg)
 end
 
-local dummy_id <const> = datasheet.building_id.dummy
-
 function game.update()
 	camera.key_ctrl()
 	for _, mode, action, x1, y1, x2, y2 in hud.message() do
@@ -103,9 +101,13 @@ function game.update()
 				-- todo: add count ~= 10
 				gameplay.action("add_material", id, 10, x1, y1)
 			end
-		elseif mode == "blueprint" then
+		elseif mode == "blueprint" or mode == "furnace" then
 			if action == "tap" then
-				gameplay.action("add_blueprint", x1, y1, dummy_id)
+				if mode == "blueprint" then
+					gameplay.action("add_blueprint", x1, y1, datasheet.building_id.mining)
+				else
+					gameplay.action("add_blueprint", x1, y1, datasheet.building_id.furnace)
+				end
 			end
 		end
 	end
