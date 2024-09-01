@@ -213,6 +213,11 @@ return function (inst)
 		return { what = "worker", action = "new", id = self.id, object = self.object }
 	end
 	
+	function worker:deinit()
+		container.del_pile(self.cargo)
+		return { what = "worker", action = "del", id = self.id }
+	end
+	
 	function worker:export(list)
 		local obj = {
 			name = self.name,

@@ -53,11 +53,14 @@ local function arrange_material(mat)
 end
 
 local function material_id(mat, map)
+	if not mat then
+		return
+	end
 	local idlist = {}
 	local n = 1
 	for name, v in pairs(mat) do
 		idlist[n] = {
-			id = map[name].id,
+			id = map[name],
 			count = v
 		}
 		n = n + 1
@@ -66,14 +69,15 @@ local function material_id(mat, map)
 end
 
 local building_idmap = {}
-local function arrange_buildings(building, mat)
+local function arrange_buildings(building, mat, recipe)
 	local idlist = {}
 	for name, v in pairs(building) do
 		local id = v.id
 		building_idmap[name] = id
 		v.name = name
-		if v.material then
-			v.material = material_id(v.material, mat)
+		v.material = material_id(v.material, mat)
+		if v.recipe then
+			v.recipe = recipe[v.recipe] or error ("Unknown recipe " .. tostring(v.recipe))
 		end
 		idlist[id] = v
 	end
@@ -88,11 +92,39 @@ local function building_time(buildings)
 	return data
 end
 
-data.building = arrange_buildings(data.building, data.material)
+local function arrange_pair(p, idmap)
+	if not p then
+		return
+	end
+	local r = {}
+	local n = 1
+	for k,v in pairs(p) do
+		k = idmap[k] or ("Unknown " .. tostring(k))
+		r[n] = { k, v }
+		n = n + 1
+	end
+	return r
+end
+
+local recipe_idmap = {}
+local function arrange_recipe(recipe, idmap)
+	local r = {}
+	for k,v in pairs(recipe) do
+		v.name = k
+		v.input = arrange_pair(v.input, idmap)
+		v.output = arrange_pair(v.output, idmap)
+		r[v.id] = v
+		recipe_idmap[k] = v.id
+	end
+end
+
 data.material = arrange_material(data.material)
-data.building_id = building_idmap
 data.material_id = material_idmap
 data.material_stack = material_stack
-data.blueprint = building_time(data.building)	-- todo: machine work time
+data.recipe = arrange_recipe(data.recipe, material_idmap)
+data.recipe_id = recipe_idmap
+data.building = arrange_buildings(data.building, material_idmap, recipe_idmap)
+data.building_id = building_idmap
+data.blueprint = building_time(data.building)
 
 return data

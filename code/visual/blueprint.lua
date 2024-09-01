@@ -6,11 +6,14 @@ local all = {}
 
 function blueprint.add(arg)
 	local b = datasheet.building[arg.building].blueprint
-	local obj = arg.object
-	obj.s = b.s
-	obj.z = b.z
-	obj.material = {
-		color = b.color,
+	local obj = {
+		x = arg.x,
+		y = arg.y,
+		s = b.s,
+		z = b.z,
+		material = {
+			color = b.color,
+		}
 	}
 	if b.primitive then
 		ant.primitive(b.primitive, obj)
@@ -28,11 +31,10 @@ function blueprint.del(arg)
 	all[arg.id] = nil
 end
 
-function blueprint.update()
-	for id, obj in pairs(all) do
-		if obj.text then
-			ant.print(obj, obj.text)
-		end
+function blueprint.info(arg)
+	local obj = all[arg.id]
+	if obj then
+		ant.print(obj, arg.text)
 	end
 end
 

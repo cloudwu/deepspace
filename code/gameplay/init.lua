@@ -8,6 +8,7 @@ local loadsave = require "gameplay.loadsave"
 local machine = require "gameplay.machine"
 local powergrid = require "gameplay.powergrid"
 local loot = require "gameplay.loot"
+local debuginfo = require "gameplay.debuginfo"
 
 local savefile <const> = "savetest.ant"
 
@@ -66,6 +67,7 @@ local function new_game()
 		loot.update(message)
 		floor.update(message)
 		scene.update(message)
+		debuginfo.update(message)
 		
 		assign_task(schedule, actor)
 		

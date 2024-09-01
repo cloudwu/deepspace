@@ -120,9 +120,7 @@ function game.update()
 		gameplay.action("publish", "debug")
 	end
 	vworker.update()
-	vbox.update()
 	vloot.update()
-	vblueprint.update()
 	for _, msg in ipairs(gameplay.update()) do
 		local f = action[msg.what]
 		if f then

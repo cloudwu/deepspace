@@ -1,4 +1,5 @@
 local datasheet = require "gameplay.datasheet"
+local debuginfo = require "gameplay.debuginfo"
 
 return function (inst)
 	local scene = inst.scene
@@ -46,14 +47,17 @@ return function (inst)
 			build(self)
 		elseif status == "building" then
 			-- complete building task
-			if self.pile then
-				container.del_pile(self.pile)
-				self.pile = nil
-			end
-			machine.del(self.blueprint)
 			scene.add_building(self.building, self.x, self.y)
 			return true
 		end
+	end
+	
+	function building:deinit()
+		if self.pile then
+			container.del_pile(self.pile)
+		end
+		machine.del(self.blueprint)
+		return { what = "blueprint", action = "del", id = self.id }
 	end
 	
 	function building:init()
@@ -105,20 +109,18 @@ return function (inst)
 				end
 			end
 		end
-		
-		self.object = { x = x, y = y }
-		
-		return { what = "blueprint", action = "add", id = self.id, building = self.building, object = self.object }
+
+		return { what = "blueprint", action = "add", id = self.id, building = self.building, x = x, y = y  }
 	end
 	
 	function building:debug()
 		local status = self.status
 		if status == "blueprint" then
 			if self.pile then
-				self.object.text = container.pile_info(self.pile)
+				debuginfo.add("blueprint", self.id, container.pile_info(self.pile))
 			end
 		else	-- "building"
-			self.object.text = machine.info(self.blueprint)
+			debuginfo.add("blueprint", self.id, machine.info(self.blueprint))
 		end
 	end
 	

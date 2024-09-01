@@ -11,4 +11,10 @@ material :
     facade:
       primitive : cube
       color : 0x00ffff
+  ore :
+    id : 3
+    stack : 100
+    facade:
+      primitive : cube
+      color : 0x0000ff
     

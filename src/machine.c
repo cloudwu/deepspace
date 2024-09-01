@@ -274,12 +274,6 @@ lmachine_info(lua_State *L) {
 
 static int
 machine_work(struct machine *m, struct powergrid *P) {
-	if (m->productivity == 0)	// stop
-		return 1;
-	if (m->worktick >= ((uint64_t)m->worktime << 16)) {
-		// finish
-		return 1;
-	}
 	if (m->appliance) {
 		// need power
 		struct capacitance * cap = powergrid_get_level(P, m->appliance);
@@ -287,6 +281,12 @@ machine_work(struct machine *m, struct powergrid *P) {
 			return 0;
 		}
 		cap->level = m->power;
+	}
+	if (m->productivity == 0)	// stop
+		return 1;
+	if (m->worktick >= ((uint64_t)m->worktime << 16)) {
+		// finish
+		return 1;
 	}
 	m->worktick += m->productivity;
 	return 0;
@@ -326,10 +326,6 @@ lmachine_status(lua_State *L) {
 		lua_pushstring(L, "finish");
 		return 1;
 	}
-	if (m->productivity == 0) {
-		lua_pushstring(L, "stop");
-		return 1;		
-	}
 	if (m->appliance) {
 		struct powergrid *P = luaL_checkudata(L, 3, POWERGRID_LUAKEY);
 		struct capacitance *c = powergrid_get_level(P, m->appliance);
@@ -340,6 +336,10 @@ lmachine_status(lua_State *L) {
 			lua_pushstring(L, "nopower");
 			return 1;
 		}
+	}
+	if (m->productivity == 0) {
+		lua_pushstring(L, "stop");
+		return 1;
 	}
 	lua_pushstring(L, "working");
 	return 1;

@@ -1,0 +1,14 @@
+recipe :
+	mining :
+		id : 1
+		output:
+			ore : 100
+		time: 200
+	ore_sorting :
+		id : 2
+	    input :
+			ore : 1
+		output :
+			wood : 100
+			iron : 50
+		time: 100

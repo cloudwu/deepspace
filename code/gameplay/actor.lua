@@ -17,7 +17,6 @@ return function (inst)
 
 	local alloc_id = allocid()
 	local actors = {}
-	local actors_dtor = {}
 
 	local new_set = {}
 	local delete_set = {}
@@ -32,7 +31,6 @@ return function (inst)
 		local vmessage = obj:init()
 		if vmessage then
 			message[#message+1] = vmessage
-			actors_dtor[id] = vmessage.what
 		end
 		new_set[id] = obj
 		return id
@@ -55,11 +53,12 @@ return function (inst)
 		-- remove deleted actors
 		for i = 1, n do
 			local id = delete_set[i]
+			local obj = actors[id]
 			actors[id] = nil
 			delete_set[i] = nil
-			local what = actors_dtor[id]
-			if what then
-				queue[#queue+1] = { what = what, action = "del", id = id }
+			local msg = obj:deinit()
+			if msg then
+				queue[#queue+1] = msg
 			end
 		end
 		

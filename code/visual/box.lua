@@ -8,11 +8,14 @@ function box.new(arg)
 	local f = datasheet.building[arg.building].facade
 	-- todo : support prefab
 	
-	local obj = arg.object
-	obj.s = f.scale
-	obj.z = 0.5
-	obj.material = {
-		color = f.color,
+	local obj = {
+		x = arg.x,
+		y = arg.y,
+		s = f.scale,
+		z = 0.5,
+		material = {
+			color = f.color,
+		}
 	}
 	assert(all[arg.id] == nil)
 	all[arg.id] = ant.primitive("cube", obj)
@@ -30,11 +33,10 @@ function box.clear()
 	all = {}
 end
 
-function box.update()
-	for _, obj in pairs(all) do
-		if obj.text then
-			ant.print(obj, obj.text)
-		end
+function box.info(arg)
+	local obj = all[arg.id]
+	if obj then
+		ant.print(obj, arg.text)
 	end
 end
 
