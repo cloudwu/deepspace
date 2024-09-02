@@ -12,10 +12,19 @@ local datasheet = require "gameplay.datasheet"
 local game = {}
 
 local show_debug = false
+local show_info = false
 function game.keyboard(key)
 	if key == "F8" then
 		show_debug = not show_debug
 		ant.show_debug(show_debug)
+	elseif key == "F7" then
+		show_info = not show_info
+		hud.show("info", show_info)
+		if show_info then
+			local model = hud.model "info"
+			model.title = "Hello"
+			model.content = "World"
+		end
 	elseif key == "F5" then
 		print("Saving")
 		gameplay.action "save"
@@ -129,6 +138,7 @@ function game.update()
 			f(msg)
 		end
 	end
+	hud.update()
 end
 
 return game

@@ -1,0 +1,17 @@
+body {
+	font: "微软雅黑";
+	pointer-events: none;
+}
+
+info {
+	display: flex;
+//	color: red;
+	flex-direction: row;
+	pointer-events: none;
+	border: 1px green;
+}
+
+part {
+	width:10%;
+	border: 1px red;
+}

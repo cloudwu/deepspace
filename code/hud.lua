@@ -1,3 +1,5 @@
+local ui = import_package "rogue.ui"
+
 local hud = {}
 
 local mode
@@ -82,6 +84,19 @@ function hud.init()
 			mode = arg
 		end
 	end)
+	ui.init(ant)
+end
+
+function hud.update()
+	ui.update(ant)
+end
+
+function hud.show(name, enable)
+	ui.show(ant, name, enable)
+end
+
+function hud.model(name)
+	return ui.model(ant, name)
 end
 
 local function next_values(t, key)
