@@ -2,7 +2,7 @@ local ltask = require "ltask"
 local M = {}
 
 local ui_callback = {}
-local ui_meta = {}
+local ui_id = {}
 
 local init_callback
 local function set_callback(window, what)
@@ -24,7 +24,7 @@ local function set_listener(window, id, model)
 		set_callback(window, "set")
 		set_callback(window, "ctrl")
 		window.onMessage("query", function(name)
-			return ui_meta[name]
+			return ui_id[name]
 		end)
 		window.sendMessage("init_callback")
 	end
@@ -38,20 +38,12 @@ local function alloc_id()
 end
 
 function M.listen(window)
-	return function (list)
-		local window_id = alloc_id()
-		local name = window.getName()
-		local view = {}
-		for _, item in ipairs(list) do
-			view[item] = ""
-		end
-		local model = window.createModel(view)
-		ui_meta[name] = {
-			id = window_id,
-			list = list,
-		}
-		set_listener(window, window_id, model)
-	end
+	local window_id = alloc_id()
+	local name = window.getName()
+	local model = window.createModel {}
+	ui_id[name] = window_id
+	set_listener(window, window_id, model)
+	return model
 end
 
 local game_side = {}
@@ -105,13 +97,8 @@ local function query(ant, obj)
 	obj.id = false
 	ltask.fork(function()
 		local fullname = "/ui/"..obj.name..".html"
-		local meta = ant.gui_call("query", fullname)
-		obj.id = meta.id
-		local remote = {}
-		obj.remote = remote
-		for _, name in ipairs(meta.list) do
-			remote[name] = false
-		end
+		obj.id = ant.gui_call("query", fullname)
+		obj.remote = {}
 	end)
 end
 
@@ -129,15 +116,14 @@ function M.update(ant)
 		if id == nil then
 			query(ant, obj)
 		else
-			local remote = obj.remote
 			local model = obj.model
+			local remote = obj.remote
 			for k,v in pairs(model) do
-				local rv = remote[k]
-				if rv ~= v and rv ~= nil then
-					remote[k] = v
-					model[k] = nil
+				if v ~= remote[k] then
 					ant.gui_send("set", id, k, v)
+					remote[k] = v
 				end
+				model[k] = nil
 			end
 		end
 	end
