@@ -5,7 +5,7 @@ body {
 
 info {
 	display: flex;
-//	color: red;
+	color: green;
 	flex-direction: row;
 	pointer-events: none;
 	border: 1px green;
@@ -13,5 +13,4 @@ info {
 
 part {
 	width:10%;
-	border: 1px red;
 }

@@ -22,7 +22,7 @@ local function load(modpath)
 	end
 end
 
-local startup = args[0]
+local startup = args and args[0]
 local modpath
 if startup then
 	modpath = lfs.path(startup):parent_path() / "mod"

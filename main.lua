@@ -6,5 +6,6 @@ import_package "ant.framework.demo".start {
 --	profile = true,
 	log = "info",
 	path = "/code/main.lua",
+--	path = "/uitest/hud.lua",
 	setting = "/code/config.ant",
 }
